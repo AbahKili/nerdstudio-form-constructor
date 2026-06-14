@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div id="app"><div style="text-align:center;padding:4rem 1rem;"><p style="color:#94a3b8;">Memuat form...</p></div></div>
+<iframe name="hf" id="hf" style="display:none;"></iframe>
+
+<script>
+// ═══ DATA ═══
+var DW={provinsi:<?!=JSON.stringify(dataProv)?>,kabkota:<?!=JSON.stringify(dataKab)?>,kecamatan:<?!=JSON.stringify(dataKec)?>};
+var CF=<?!=JSON.stringify(config)?>;
+if(!CF.branding)CF.branding={};
+if(!CF.regions)CF.regions={};
+var FS=CF.orderedFields||CF.fields||[];
+
+// ═══ THEME ═══
+var TH={
+dark:{bg:'#020617',tx:'#f8fafc',cd:'rgba(15,23,42,0.85)',bd:'rgba(51,65,85,0.4)',ib:'#0f172a',il:'#334155',it:'#f8fafc',bt:'#0ea5e9',bn:'#fff',mu:'#94a3b8',ac:'#3b82f6'},
+light:{bg:'#f1f5f9',tx:'#0f172a',cd:'#fff',bd:'#e2e8f0',ib:'#f8fafc',il:'#cbd5e1',it:'#0f172a',bt:'#2563eb',bn:'#fff',mu:'#64748b',ac:'#3b82f6'},
+corporate:{bg:'#eff6ff',tx:'#1e3a8a',cd:'#fff',bd:'#bfdbfe',ib:'#f8fafc',il:'#93c5fd',it:'#1e3a8a',bt:'#1d4ed8',bn:'#fff',mu:'#64748b',ac:'#2563eb'}
+};
+var T=TH[CF.branding.themeStyle]||TH.dark;
+
+// ═══ BUILD PAGES FROM orderedFields ═══
+var PAGES=[]; // [{id,label,fields:[...]}]
+var seen={};
+FS.forEach(function(f){
+var sec=f.pageSection||'page1';
+if(!seen[sec]){PAGES.push({id:sec,label:sec,fields:[]});seen[sec]=true}
+PAGES[PAGES.length-1].fields.push(f);
+});
+if(PAGES.length===0)PAGES.push({id:'page1',label:'Page 1',fields:[]});
+// Sort pages by number: page1 < page2 < page3 ...
+PAGES.sort(function(a,b){
+var na=parseInt(a.id.replace('page',''))||1;
+var nb=parseInt(b.id.replace('page',''))||1;
+return na-nb;
+});
+var totalPages=PAGES.length;
+var curPage=0;
+
+// ═══ RENDER ═══
+var h='';
+h+='<style>';
+h+='body{background:'+T.bg+';color:'+T.tx+';font-family:"Inter",sans-serif;margin:0;padding:0}';
+h+='h1{font-family:"Outfit",sans-serif}';
+h+='.g{background:'+T.cd+';border:1px solid '+T.bd+';backdrop-filter:blur(16px);border-radius:14px;padding:1.5rem}';
+h+='.fi{background:'+T.ib+';border:1px solid '+T.il+';color:'+T.it+';border-radius:10px;padding:0.75rem 1rem;width:100%;box-sizing:border-box;font-size:0.9rem;margin-bottom:0.5rem}';
+h+='.fi:focus{outline:none;box-shadow:0 0 0 2px '+T.ac+'}';
+h+='.bt{background:'+T.bt+';color:'+T.bn+';border:none;border-radius:10px;padding:0.75rem 2rem;font-weight:600;font-size:0.95rem;cursor:pointer}';
+h+='.bt:hover{opacity:0.9}.bt:disabled{opacity:0.5;cursor:not-allowed}';
+h+='.b2{background:transparent;border:1px solid '+T.bd+';color:'+T.tx+';border-radius:10px;padding:0.75rem 2rem;font-weight:600;font-size:0.95rem;cursor:pointer}';
+h+='.sp{display:inline-block;width:24px;height:24px;border:2px solid rgba(255,255,255,0.2);border-left-color:'+T.ac+';border-radius:50%;animation:sp 1s linear infinite}';
+h+='@keyframes sp{100%{transform:rotate(360deg)}}';
+h+='.hn{display:none!important}';
+h+='label{font-size:0.8rem;font-weight:600;display:block;margin-bottom:0.3rem;margin-top:0.75rem}';
+h+='select{appearance:none;background-image:url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%23'+T.mu.replace('#','')+'\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e");background-position:right 1rem center;background-repeat:no-repeat;background-size:1.2em 1.2em;padding-right:2.5rem}';
+h+='.s2{display:flex;justify-content:center;gap:0.5rem;margin-top:0.5rem}';
+h+='.s2 span{width:32px;height:6px;border-radius:3px;transition:background 0.3s}';
+h+='</style>';
+
+// Header
+h+='<div style="text-align:center;padding:2rem 1rem 1rem">';
+if(CF.branding.logo)h+='<img src="'+CF.branding.logo+'" style="max-height:48px;margin-bottom:0.75rem">';
+h+='<h1 style="font-size:1.6rem;font-weight:700;margin:0">'+CF.branding.title+'</h1>';
+if(CF.branding.subtitle)h+='<p style="color:'+T.mu+';font-size:0.9rem;margin-top:0.5rem">'+CF.branding.subtitle+'</p>';
+// Dots
+if(totalPages>1){
+h+='<div class="s2">';
+for(var i=0;i<totalPages;i++){
+h+='<span id="d'+i+'" style="background:'+(i===0?T.ac:T.bd)+'"></span>';
+}
+h+='</div>';
+}
+h+='</div>';
+
+// Form
+h+='<div style="max-width:520px;margin:0 auto;padding:0 1rem 4rem">';
+h+='<form id="mf" onsubmit="return hs(event)" class="g">';
+
+// Render each page
+for(var pi=0;pi<PAGES.length;pi++){
+var pfs=PAGES[pi].fields;
+h+='<div id="pg'+pi+'" style="display:'+(pi===0?'block':'none')+'">';
+if(totalPages>1)h+='<p style="font-size:0.85rem;color:'+T.mu+';margin-bottom:1rem">Halaman '+(pi+1)+' dari '+totalPages+'</p>';
+
+for(var fi=0;fi<pfs.length;fi++){
+var f=pfs[fi],r=f.role||'normal',lbl=f.label||'',ent=f.entry||'',typ=f.type||'text';
+if(r==='provinsi'){
+h+='<label>'+lbl+'</label>';
+h+='<select id="sp" class="fi" onchange="pc()" oninput="pc()" onblur="pc()" required><option value="">-- Pilih --</option></select>';
+}else if(r==='kabkota'){
+h+='<label>'+lbl+'</label>';
+h+='<select id="sk" class="fi" onchange="kc()" oninput="kc()" onblur="kc()" required disabled><option value="">-- Pilih --</option></select>';
+}else if(r==='kecamatan'){
+h+='<label>'+lbl+'</label>';
+h+='<select id="se" class="fi" onchange="ec()" oninput="ec()" onblur="ec()" required disabled><option value="">-- Pilih --</option></select>';
+}else if(r==='gender'){
+h+='<label>'+lbl+'</label>';
+h+='<select name="'+ent+'" class="fi" required><option value="">-- Pilih --</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select>';
+}else if(typ==='email'){
+h+='<label>'+lbl+'</label>';
+h+='<input type="email" name="'+ent+'" class="fi" required>';
+}else{
+h+='<label>'+lbl+'</label>';
+h+='<input type="text" name="'+ent+'" class="fi" required>';
+}
+}
+
+// Navigation
+h+='<div style="display:flex;justify-content:'+(pi===PAGES.length-1?'flex-end':(pi>0?'space-between':'flex-end'))+';align-items:center;margin-top:1.5rem">';
+if(pi>0)h+='<button type="button" class="b2" onclick="gp('+(pi-1)+')"><i class="fa-solid fa-arrow-left" style="margin-right:0.5rem"></i>Kembali</button>';
+if(pi<PAGES.length-1){
+h+='<button type="button" class="bt" id="bn'+pi+'" '+((r==='provinsi'||r==='kabkota'||r==='kecamatan')?'disabled':'')+' onclick="gp('+(pi+1)+')">Lanjutkan <i class="fa-solid fa-arrow-right" style="margin-left:0.5rem"></i></button>';
+}else{
+h+='<button type="submit" class="bt" id="bs">Kirim <i class="fa-solid fa-paper-plane" style="margin-left:0.5rem"></i></button>';
+}
+h+='</div></div>';
+}
+
+// Loading
+h+='<div id="ld" class="hn" style="text-align:center;padding:2rem"><span class="sp"></span><p style="color:'+T.mu+';font-size:0.85rem;margin-top:0.75rem">Mengirim data...</p></div>';
+h+='</form></div>';
+
+document.getElementById('app').innerHTML=h;
+initDrops();
+
+// ═══ DROPDOWNS ═══
+function sn(a){return a.sort(function(x,y){return x.nama.localeCompare(y.nama,'id')})}
+
+function initDrops(){
+var sp=document.getElementById('sp');
+if(!sp)return;
+var l=[];
+for(var k in DW.provinsi)l.push({kode:k,nama:DW.provinsi[k]});
+sn(l);
+l.forEach(function(p){var o=document.createElement('option');o.value=p.kode;o.textContent=p.nama;sp.appendChild(o)});
+}
+
+function pc(){
+selProv=document.getElementById('sp').value;
+var sk=document.getElementById('sk'),se=document.getElementById('se');
+if(sk){sk.innerHTML='<option value="">-- Pilih --</option>';sk.disabled=!selProv}
+if(se){se.innerHTML='<option value="">-- Pilih --</option>';se.disabled=true}
+if(!selProv){cn();return;}
+if(sk){var it=DW.kabkota[selProv]||[],l=it.map(function(r){return{kode:r[0],nama:r[1]}});sn(l);l.forEach(function(k){var o=document.createElement('option');o.value=k.kode;o.textContent=k.nama;sk.appendChild(o)});sk.disabled=false}
+cn();
+}
+
+function kc(){
+selKab=document.getElementById('sk').value;
+var se=document.getElementById('se');
+if(se){se.innerHTML='<option value="">-- Pilih --</option>';se.disabled=!selKab}
+if(!selKab){cn();return;}
+if(se){var it=DW.kecamatan[selKab]||[],l=it.map(function(r){return{kode:r[0],nama:r[1]}});sn(l);l.forEach(function(k){var o=document.createElement('option');o.value=k.kode;o.textContent=k.nama;se.appendChild(o)});se.disabled=false}
+cn();
+}
+
+function ec(){selKec=document.getElementById('se')?document.getElementById('se').value:'';cn()}
+
+function cn(){
+  for(var i=0;i<totalPages;i++){
+    var b=document.getElementById('bn'+i);
+    if(!b)continue;
+    var pg=document.getElementById('pg'+i);
+    if(!pg||pg.style.display==='none')continue;
+    // Only check selects INSIDE this visible page
+    var ok=true;
+    var sp=document.getElementById('sp');if(sp&&pg.contains(sp)&&!sp.value)ok=false;
+    var sk=document.getElementById('sk');if(sk&&pg.contains(sk)&&!sk.value)ok=false;
+    var se=document.getElementById('se');if(se&&pg.contains(se)&&!se.value)ok=false;
+    b.disabled=!ok;break;
+  }
+}
+
+// ═══ PAGE NAV ═══
+function gp(n){
+for(var i=0;i<totalPages;i++){
+document.getElementById('pg'+i).style.display=(i===n?'block':'none');
+var d=document.getElementById('d'+i);if(d)d.style.background=(i<=n?T.ac:T.bd);
+}
+curPage=n;window.scrollTo({top:0,behavior:'smooth'});
+setTimeout(function(){cn();},300);
+}
+
+// ═══ SUBMIT ═══
+var selProv='',selKab='',selKec='',selProvName='',selKabName='',selKecName='';
+
+function hs(e){
+e.preventDefault();
+var b=document.getElementById('bs'),l=document.getElementById('ld');
+if(!b)return false;
+b.disabled=true;l.classList.remove('hn');
+
+// Build wilayah names
+if(selProv)selProvName=DW.provinsi[selProv]||'';
+if(selKab){var kd=(DW.kabkota[selProv]||[]).filter(function(r){return r[0]===selKab});if(kd.length)selKabName=kd[0][1];}
+if(selKec){var ed=(DW.kecamatan[selKab]||[]).filter(function(r){return r[0]===selKec});if(ed.length)selKecName=ed[0][1];}
+
+var fd=new FormData(document.getElementById('mf'));
+
+// Append wilayah with correct entry IDs from config
+if(selProvName&&CF.regions.provinsi)fd.append(CF.regions.provinsi,selProvName);
+if(selKabName&&CF.regions.kabkota)fd.append(CF.regions.kabkota,selKabName);
+if(selKecName&&CF.regions.kecamatan)fd.append(CF.regions.kecamatan,selKecName);
+
+// Submit via iframe
+var f=document.createElement('form');f.method='POST';f.action=CF.formActionUrl;f.target='hf';f.style.display='none';
+fd.forEach(function(v,k){var i=document.createElement('input');i.type='hidden';i.name=k;i.value=v;f.appendChild(i)});
+document.body.appendChild(f);f.submit();document.body.removeChild(f);
+
+// Popup after 1.5s
+setTimeout(function(){
+l.classList.add('hn');
+Swal.fire({
+title:CF.branding.successMsg||'Berhasil!',
+text:'Data Anda telah terkirim.',
+icon:'success',
+confirmButtonColor:T.bt
+}).then(function(){
+document.getElementById('mf').reset();
+if(totalPages>1)gp(0);
+b.disabled=false;
+});
+},1500);
+
+return false;
+}
+</script>
+</body>
+</html>
