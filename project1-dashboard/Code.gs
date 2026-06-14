@@ -21,7 +21,8 @@ function autoCreateGoogleForm(formData) {
     form.setDescription((formData.description || 'Dibuat oleh Nerd Studio Form Constructor') + '\n\n🏗️ Built with Nerd Studio Form Constructor — ' + new Date().toISOString().split('T')[0]);
     // Auto-link Google Sheet
     try {
-      var ss = SpreadsheetApp.create(form.getTitle() || 'Form Responses');
+      var sheetName = formData.title || form.getTitle() || 'Form Responses';
+      var ss = SpreadsheetApp.create(sheetName + ' — Responses');
       form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
     } catch(e) {}
     (formData.fields || []).forEach(function(f) {
@@ -119,9 +120,9 @@ function linkSheetToForm(formUrl) {
 
 function getResponseData(formUrl, limit) {
   try {
-    // Try reading from linked Sheet first (picks up manual edits)
+    // Try reading from linked Sheet first (picks up manual edits too)
     var form = FormApp.openByUrl(toEditUrl(formUrl));
-    var sheetData = null;
+    var responses = form.getResponses();
     try {
       var destId = form.getDestinationId();
       if (destId) {
@@ -129,15 +130,13 @@ function getResponseData(formUrl, limit) {
         var sheet = ss.getSheets()[0];
         var allData = sheet.getDataRange().getValues();
         if (allData.length > 1) {
-          sheetData = { headers: allData[0], rows: allData.slice(1) };
+          var hdrs = allData[0];
+          var rws = allData.slice(1).filter(function(r){return r.some(function(c){return String(c).trim()!==''})});
+          limit = Math.min(limit || 30, rws.length);
+          return { success: true, headers: hdrs, rows: rws.slice(-limit), total: rws.length, source: 'sheet' };
         }
       }
     } catch(e) {}
-
-    if (sheetData) {
-      limit = Math.min(limit || 30, sheetData.rows.length);
-      return { success: true, headers: sheetData.headers, rows: sheetData.rows.slice(-limit), total: sheetData.rows.length, source: 'sheet' };
-    }
 
     // Fallback to form responses
     var responses = form.getResponses();
@@ -201,8 +200,19 @@ function saveFormToList(formUrl, title) {
   var props = PropertiesService.getUserProperties();
   var list = JSON.parse(props.getProperty('form_list') || '[]');
   var id = extractId(formUrl);
-  // ALWAYS get actual form title from Google Form, fallback to passed title, then ID
-  try { title = FormApp.openByUrl(toEditUrl(formUrl)).getTitle() || title; } catch(e) {}
+  // Use passed title first, then try FormApp.getTitle(), then ID fallback
+  // If title is empty, try FormApp, then keep old title from existing entry
+  if (!title || !title.trim()) {
+    try { title = FormApp.openByUrl(toEditUrl(formUrl)).getTitle(); } catch(e) {}
+  }
+  if ((!title || !title.trim()) && id) {
+    // Keep existing title if form already in list
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].id === id && list[j].title && list[j].title.trim() && !list[j].title.startsWith('Form ')) {
+        title = list[j].title; break;
+      }
+    }
+  }
   if (!title || !title.trim()) title = 'Form ' + (id ? id.substring(0, 8) : 'Baru');
   // Dedupe by id
   list = list.filter(function(f) { return f.id !== id; });
