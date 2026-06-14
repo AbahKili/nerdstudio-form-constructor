@@ -167,12 +167,16 @@ function toggleTheme(){var b=document.body,icon=document.getElementById('themeIc
 
 var currentActionUrl="",currentFormUrl="";
 var TOTAL_PAGES=2,REGION_LEVEL="kabkota";
+var step2Visible=false;
 
 function switchTab(m){
   ['existing','new','admin'].forEach(function(t){
     document.getElementById('mode-'+t).classList.toggle('hidden',t!==m);
     document.getElementById('tab-'+t).className='flex-1 py-4 text-sm font-bold '+(t===m?'text-blue-600 border-b-2 border-blue-600':'text-slate-500 border-b-2 border-transparent')+' whitespace-nowrap px-2 transition-all';
   });
+  // Hide Step 2+3 when on admin tab
+  var s2=document.getElementById('step2');
+  if(m==='admin'){s2.classList.add('hidden');}else if(step2Visible){s2.classList.remove('hidden');}
   if(m==='admin')loadFormList();
 }
 
@@ -211,7 +215,7 @@ function createFormOnDrive(){
     txt.innerText="Buat Form di Drive Saya";load.classList.add('hidden');document.getElementById('btnCreate').disabled=false;
     if(!res.success)return Swal.fire('Error',res.message,'error');
     Swal.fire({icon:'success',title:'Berhasil!',text:'Menganalisis form...',timer:1500,showConfirmButton:false});
-    document.getElementById('formUrl').value=res.url;autoSaveForm(res.editUrl||res.url);parseForm(res.url);
+    document.getElementById('formUrl').value=res.url;document.getElementById('b_title').value=document.getElementById('newFormTitle').value;autoSaveForm(res.editUrl||res.url,document.getElementById('newFormTitle').value);parseForm(res.url);
   }).autoCreateGoogleForm({title:document.getElementById('newFormTitle').value,fields:fields});
 }
 
@@ -225,8 +229,9 @@ function parseForm(forceUrl){
     if(!res.success)return Swal.fire('Gagal',res.message,'error');
     currentActionUrl=res.formActionUrl;
     renderTableMapping(res.fields);
-    document.getElementById('step2').classList.remove('hidden');
-    autoSaveForm(currentFormUrl);
+    document.getElementById('step2').classList.remove('hidden');step2Visible=true;
+    // Auto-populate branding title from form
+    google.script.run.withSuccessHandler(function(r){if(r.success&&r.title)document.getElementById('b_title').value=r.title;}).getFormTitle(url);
   }).parseGoogleForm(url);
 }
 
@@ -265,6 +270,7 @@ function compileStatelessForm(){
     if(!res.success)return Swal.fire('Error',res.message,'error');
     document.getElementById('liveUrlLink').value=res.liveUrl;document.getElementById('lnkTest').href=res.liveUrl;
     document.getElementById('modalOut').classList.remove('hidden');
+    if(currentFormUrl)google.script.run.saveFormLiveLink(currentFormUrl,res.liveUrl);
   }).generateLiveSaaSLink(config);
 }
 
@@ -283,7 +289,8 @@ function loadFormList(){
     var sel=document.getElementById('adminFormSelect');
     sel.innerHTML='<option value="">-- Pilih form tersimpan ('+r.list.length+') --</option>';
     r.list.forEach(function(f){
-      sel.innerHTML+='<option value="'+f.url+'">'+f.title+'</option>';
+      var t=f.title||f.id||'Untitled';
+      sel.innerHTML+='<option value="'+f.url+'">'+t+'</option>';
     });
   }).getFormList();
 }
@@ -295,8 +302,8 @@ function onFormSelect(){
   loadAdmin();
 }
 
-function autoSaveForm(url){
-  var title=document.getElementById('b_title').value||'Untitled';
+function autoSaveForm(url,title){
+  title=title||document.getElementById('newFormTitle').value||document.getElementById('b_title').value||'Untitled';
   google.script.run.saveFormToList(url,title);
 }
 
@@ -306,6 +313,8 @@ function loadAdmin(){
   adminFormUrl=url;
   document.getElementById('txtAdmin').innerText="Memuat...";document.getElementById('loadAdmin').classList.remove('hidden');
   document.getElementById('btnAdmin').disabled=true;
+  // Auto-save this form to list
+  google.script.run.withSuccessHandler(function(r){if(r.success)loadFormList();}).saveFormToList(url,'');
   google.script.run.withSuccessHandler(renderAdmin).getFormStats(url);
 }
 
@@ -332,6 +341,9 @@ function renderAdmin(stats){
     </div>\
     <div class="flex gap-3 flex-wrap">\
       '+sheetSection(stats)+'\
+      <a href="#" onclick="openLiveLink();return false" class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-globe"></i> Buka Live Form</a>\
+      <a href="#" onclick="genFromAdmin();return false" class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-medium border border-emerald-200 hover:bg-emerald-100"><i class="fa-solid fa-pen-to-square"></i> Edit Branding & Generate</a>\
+      <a href="#" onclick="delForm();return false" class="inline-flex items-center gap-2 bg-red-50 text-red-400 px-4 py-2 rounded-xl text-sm border border-red-200 hover:bg-red-100"><i class="fa-solid fa-trash"></i> Hapus dari List</a>\
     </div>\
     <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">\
       <h3 class="font-bold text-sm mb-3"><i class="fa-solid fa-clock text-blue-500"></i> Auto-Close Otomatis</h3>\
@@ -424,6 +436,20 @@ function refreshData(){
   }).getResponseData(adminFormUrl,30);
 }
 
+function genFromAdmin(){
+  document.getElementById('formUrl').value=adminFormUrl;switchTab('existing');parseForm();
+}
+function openLiveLink(){
+  google.script.run.withSuccessHandler(function(r){
+    if(r.success&&r.liveUrl){window.open(r.liveUrl,'_blank')}
+    else{Swal.fire('Info','Belum ada live link. Klik Edit Branding & Generate dulu.','info')}
+  }).getFormLiveLink(adminFormUrl);
+}
+function delForm(){
+  Swal.fire({title:'Hapus dari list?',text:'Form tidak dihapus dari Drive',icon:'warning',showCancelButton:true,confirmButtonText:'Ya, hapus',cancelButtonText:'Batal'}).then(function(r){
+    if(r.isConfirmed){google.script.run.withSuccessHandler(function(){loadFormList();document.getElementById('adminContent').classList.add('hidden');}).deleteFormFromList(adminFormUrl);}
+  });
+}
 function formatDate(d){if(!d)return'(belum ada)';return new Date(d).toLocaleString('id-ID');}
 </script>
 </body>

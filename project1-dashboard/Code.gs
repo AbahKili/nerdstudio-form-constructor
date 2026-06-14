@@ -3,7 +3,7 @@
  * Execute As: User accessing | Access: Anyone with Google
  */
 
-var RENDERER_URL = "https://script.google.com/macros/s/AKfycbwu7-149GyerxVvLISW3xxjNSyekrDdK_z5kafvtVY656avehBRx9XjPzVPsg-s5-ct/exec";
+var RENDERER_URL = "https://script.google.com/macros/s/AKfycbwCXR_4721e2n83hTa0x49V2lf4Lk1RML-BJCp-Twg/exec";
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -21,7 +21,7 @@ function autoCreateGoogleForm(formData) {
     form.setDescription((formData.description || 'Dibuat oleh Nerd Studio Form Constructor') + '\n\n🏗️ Built with Nerd Studio Form Constructor — ' + new Date().toISOString().split('T')[0]);
     // Auto-link Google Sheet
     try {
-      var ss = SpreadsheetApp.create(form.getTitle() + ' — Responses');
+      var ss = SpreadsheetApp.create(form.getTitle() || 'Form Responses');
       form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
     } catch(e) {}
     (formData.fields || []).forEach(function(f) {
@@ -119,7 +119,27 @@ function linkSheetToForm(formUrl) {
 
 function getResponseData(formUrl, limit) {
   try {
-    var form = FormApp.openByUrl(toEditUrl);
+    // Try reading from linked Sheet first (picks up manual edits)
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
+    var sheetData = null;
+    try {
+      var destId = form.getDestinationId();
+      if (destId) {
+        var ss = SpreadsheetApp.openById(destId);
+        var sheet = ss.getSheets()[0];
+        var allData = sheet.getDataRange().getValues();
+        if (allData.length > 1) {
+          sheetData = { headers: allData[0], rows: allData.slice(1) };
+        }
+      }
+    } catch(e) {}
+
+    if (sheetData) {
+      limit = Math.min(limit || 30, sheetData.rows.length);
+      return { success: true, headers: sheetData.headers, rows: sheetData.rows.slice(-limit), total: sheetData.rows.length, source: 'sheet' };
+    }
+
+    // Fallback to form responses
     var responses = form.getResponses();
     var items = form.getItems();
     limit = Math.min(limit || 30, responses.length);
@@ -138,13 +158,13 @@ function getResponseData(formUrl, limit) {
       });
       rows.push(row);
     }
-    return { success: true, headers: ['Timestamp'].concat(headers), rows: rows, total: responses.length };
+    return { success: true, headers: ['Timestamp'].concat(headers), rows: rows, total: responses.length, source: 'form' };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
 function getUniqueCount(formUrl, fieldTitle) {
   try {
-    var form = FormApp.openByUrl(toEditUrl);
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
     var items = form.getItems();
     var targetItem = null;
     for (var i = 0; i < items.length; i++) { if (items[i].getTitle() === fieldTitle) { targetItem = items[i]; break; } }
@@ -172,7 +192,7 @@ function saveAutoCloseConfig(formUrl, config) {
 
 function toggleForm(formUrl, shouldAccept) {
   try {
-    FormApp.openByUrl(toEditUrl).setAcceptingResponses(shouldAccept);
+    FormApp.openByUrl(toEditUrl(formUrl)).setAcceptingResponses(shouldAccept);
     return { success: true, accepting: shouldAccept };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
@@ -181,13 +201,68 @@ function saveFormToList(formUrl, title) {
   var props = PropertiesService.getUserProperties();
   var list = JSON.parse(props.getProperty('form_list') || '[]');
   var id = extractId(formUrl);
+  // ALWAYS get actual form title from Google Form, fallback to passed title, then ID
+  try { title = FormApp.openByUrl(toEditUrl(formUrl)).getTitle() || title; } catch(e) {}
+  if (!title || !title.trim()) title = 'Form ' + (id ? id.substring(0, 8) : 'Baru');
   // Dedupe by id
   list = list.filter(function(f) { return f.id !== id; });
-  list.unshift({ id: id, url: formUrl, title: title || 'Untitled', savedAt: new Date().toISOString() });
-  // Keep max 20
+  list.unshift({ id: id, url: formUrl, title: title, savedAt: new Date().toISOString() });
   if (list.length > 20) list = list.slice(0, 20);
   props.setProperty('form_list', JSON.stringify(list));
   return { success: true, list: list };
+}
+
+function deleteFormFromList(formUrl) {
+  var props = PropertiesService.getUserProperties();
+  var list = JSON.parse(props.getProperty('form_list') || '[]');
+  var id = extractId(formUrl);
+  list = list.filter(function(f) { return f.id !== id; });
+  props.setProperty('form_list', JSON.stringify(list));
+  return { success: true };
+}
+
+function saveFormLiveLink(formUrl, liveUrl) {
+  var props = PropertiesService.getUserProperties();
+  var list = JSON.parse(props.getProperty('form_list') || '[]');
+  var id = extractId(formUrl);
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id) { list[i].liveUrl = liveUrl; break; }
+  }
+  props.setProperty('form_list', JSON.stringify(list));
+  return { success: true };
+}
+
+function getFormTitle(formUrl) {
+  try {
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
+    return { success: true, title: form.getTitle() };
+  } catch(e) { return { success: false }; }
+}
+
+function getFormLiveLink(formUrl) {
+  var list = JSON.parse(PropertiesService.getUserProperties().getProperty('form_list') || '[]');
+  var id = extractId(formUrl);
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id && list[i].liveUrl) return { success: true, liveUrl: list[i].liveUrl };
+  }
+  return { success: false };
+}
+
+function refreshFormList() {
+  var props = PropertiesService.getUserProperties();
+  var list = JSON.parse(props.getProperty('form_list') || '[]');
+  var cleaned = [];
+  for (var i = 0; i < list.length; i++) {
+    try {
+      var form = FormApp.openByUrl(toEditUrl(list[i].url));
+      list[i].title = form.getTitle();
+      cleaned.push(list[i]);
+    } catch(e) {
+      // Form no longer accessible — remove from list
+    }
+  }
+  props.setProperty('form_list', JSON.stringify(cleaned));
+  return { success: true, list: cleaned };
 }
 
 function getFormList() {
