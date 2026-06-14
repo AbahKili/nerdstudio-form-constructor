@@ -63,9 +63,16 @@ function generateLiveSaaSLink(configObj) {
 
 function extractId(url) { var m = url.match(/\/d\/([^/]+)/); return m ? m[1] : null; }
 
+// Normalize any Google Form URL to edit URL format
+function toEditUrl(url) {
+  var id = extractId(url);
+  if (!id) return url;
+  return 'https://docs.google.com/forms/d/' + id + '/edit';
+}
+
 function isNerdStudioForm(formUrl) {
   try {
-    var form = FormApp.openByUrl(formUrl);
+    var form = FormApp.openByUrl(toEditUrl);
     var desc = form.getDescription() || '';
     return desc.indexOf('🏗️ Built with Nerd Studio Form Constructor') !== -1;
   } catch(e) { return false; }
@@ -73,7 +80,7 @@ function isNerdStudioForm(formUrl) {
 
 function getFormStats(formUrl) {
   try {
-    var form = FormApp.openByUrl(formUrl);
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
     var responses = form.getResponses();
     var sheetUrl = '';
     try { if (form.getDestinationId()) sheetUrl = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch(e) {}
@@ -84,7 +91,7 @@ function getFormStats(formUrl) {
 
 function linkSheetToForm(formUrl) {
   try {
-    var form = FormApp.openByUrl(formUrl);
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
     if (form.getDestinationId()) return { success: true, sheetUrl: 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit', alreadyLinked: true };
     var ss = SpreadsheetApp.create(form.getTitle() + ' — Responses');
     form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
@@ -94,7 +101,7 @@ function linkSheetToForm(formUrl) {
 
 function getResponseData(formUrl, limit) {
   try {
-    var form = FormApp.openByUrl(formUrl);
+    var form = FormApp.openByUrl(toEditUrl);
     var responses = form.getResponses();
     var items = form.getItems();
     limit = Math.min(limit || 30, responses.length);
@@ -119,7 +126,7 @@ function getResponseData(formUrl, limit) {
 
 function getUniqueCount(formUrl, fieldTitle) {
   try {
-    var form = FormApp.openByUrl(formUrl);
+    var form = FormApp.openByUrl(toEditUrl);
     var items = form.getItems();
     var targetItem = null;
     for (var i = 0; i < items.length; i++) { if (items[i].getTitle() === fieldTitle) { targetItem = items[i]; break; } }
@@ -147,7 +154,7 @@ function saveAutoCloseConfig(formUrl, config) {
 
 function toggleForm(formUrl, shouldAccept) {
   try {
-    FormApp.openByUrl(formUrl).setAcceptingResponses(shouldAccept);
+    FormApp.openByUrl(toEditUrl).setAcceptingResponses(shouldAccept);
     return { success: true, accepting: shouldAccept };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
