@@ -231,7 +231,9 @@ sc+='</div>';
 document.getElementById('app').innerHTML=sc+'<div style="text-align:center;padding-bottom:4rem"><a href="https://nerdstudio.online" style="color:'+T.mu+';font-size:0.7rem;text-decoration:none">Powered by Nerd Studio Form Constructor</a></div>';
 document.getElementById('app').style.display='block';
 if(CF.branding.redirectUrl){
-setTimeout(function(){window.location.href=CF.branding.redirectUrl},3000);
+var ru=CF.branding.redirectUrl;
+if(!/^https?:\/\//i.test(ru))ru='https://'+ru;
+setTimeout(function(){window.location.href=ru},3000);
 }
 },1000);
 
