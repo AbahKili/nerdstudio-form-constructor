@@ -17,7 +17,6 @@ body.dark .text-slate-800,.dark .text-slate-900,.dark .text-slate-700{color:#f1f
 body.dark .text-slate-500,.dark .text-slate-400{color:#94a3b8!important}
 body.dark .text-slate-600{color:#cbd5e1!important}
 body.dark .border-slate-200,.dark .border-slate-300{border-color:#334155!important}
-body.dark .border-slate-100{border-color:#1e293b!important}
 body.dark input,body.dark select,body.dark textarea{background:#0f172a!important;color:#e2e8f0!important;border-color:#334155!important}
 body.dark .hover\:bg-slate-50:hover{background:#334155!important}
 body.dark .hover\:bg-slate-100:hover{background:#475569!important}
@@ -28,6 +27,7 @@ body.dark #topSub{color:#94a3b8!important}
 .hidden{display:none!important}
 .loader{border:3px solid #e2e8f0;border-left-color:#3b82f6;border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite}
 @keyframes spin{100%{transform:rotate(360deg)}}
+.admin-card{border-left:4px solid #3b82f6}
 </style>
 </head>
 <body class="text-slate-800 pb-20">
@@ -47,13 +47,16 @@ body.dark #topSub{color:#94a3b8!important}
 
 <div class="max-w-4xl mx-auto px-4 mt-8 space-y-6">
 
-  <!-- Tab: Hubungkan / Buat -->
+  <!-- Tabs -->
   <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="flex border-b border-slate-200 bg-slate-50">
-      <button onclick="switchTab('existing')" id="tab-existing" class="flex-1 py-4 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Hubungkan Form Lama</button>
-      <button onclick="switchTab('new')" id="tab-new" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent">Buat Form Baru Otomatis</button>
+    <div class="flex border-b border-slate-200 bg-slate-50 overflow-x-auto">
+      <button onclick="switchTab('existing')" id="tab-existing" class="flex-1 py-4 text-sm font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap px-2">Hubungkan Form</button>
+      <button onclick="switchTab('new')" id="tab-new" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent whitespace-nowrap px-2">Buat Baru</button>
+      <button onclick="switchTab('admin')" id="tab-admin" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent whitespace-nowrap px-2">Kelola Form</button>
     </div>
     <div class="p-6">
+
+      <!-- MODE: Hubungkan -->
       <div id="mode-existing">
         <p class="text-xs text-slate-500 mb-2">Masukkan tautan publik Google Form (URL viewform).</p>
         <div class="flex gap-3">
@@ -63,6 +66,8 @@ body.dark #topSub{color:#94a3b8!important}
           </button>
         </div>
       </div>
+
+      <!-- MODE: Buat Baru -->
       <div id="mode-new" class="hidden space-y-4">
         <div>
           <label class="block text-sm font-medium mb-1">Judul Google Form Baru</label>
@@ -85,91 +90,58 @@ body.dark #topSub{color:#94a3b8!important}
           </button>
         </div>
       </div>
+
+      <!-- MODE: Admin -->
+      <div id="mode-admin" class="hidden space-y-4">
+        <p class="text-xs text-slate-500">Pilih form yang sudah ada, atau masukkan URL form baru.</p>
+        <div class="flex gap-3 items-end">
+          <div class="flex-1">
+            <label class="text-xs font-medium">Form Tersimpan</label>
+            <select id="adminFormSelect" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="onFormSelect()">
+              <option value="">-- Pilih form tersimpan --</option>
+            </select>
+          </div>
+          <span class="text-xs text-slate-400 pb-2">atau</span>
+          <div class="flex-1 flex gap-2">
+            <input type="url" id="adminFormUrl" placeholder="URL form baru..." class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="loadAdmin()" id="btnAdmin" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 whitespace-nowrap">
+              <span id="txtAdmin">Muat</span><div id="loadAdmin" class="loader hidden" style="border-color:rgba(255,255,255,0.2);border-left-color:#fff"></div>
+            </button>
+          </div>
+        </div>
+        <div id="adminContent" class="hidden space-y-4 mt-4"></div>
+      </div>
     </div>
   </div>
 
-  <!-- STEP 2 + 3 -->
+  <!-- STEP 2 + 3 (muncul setelah parse/create) -->
   <div id="step2" class="hidden space-y-6">
 
     <!-- Step 2: Branding -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
       <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-palette text-blue-500"></i> Step 2: Branding</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Judul Form</label>
-          <input type="text" id="b_title" value="Registrasi Anggota" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Sub-Judul</label>
-          <input type="text" id="b_subtitle" value="Lengkapi data pendaftaran Anda" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium mb-1">Pesan Halaman Sukses</label>
-          <input type="text" id="b_success" value="Terima kasih! Data Anda telah berhasil dikirim. Tim kami akan menghubungi Anda segera." class="w-full border rounded-lg px-3 py-2">
-          <p class="text-[10px] text-slate-400 mt-1">Ditampilkan di halaman sukses setelah user submit form.</p>
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium mb-1">Link Redirect (Opsional)</label>
-          <input type="url" id="b_redirect" placeholder="contoh: detik.com (tanpa https:// juga bisa)" class="w-full border rounded-lg px-3 py-2">
-          <p class="text-[10px] text-slate-400 mt-1">Kosongkan jika tidak perlu. User akan di-redirect otomatis setelah 3 detik.</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Tema Warna</label>
-          <select id="b_theme" class="w-full border rounded-lg px-3 py-2 bg-white">
-            <option value="dark">Cyber Dark</option>
-            <option value="light">Minimalist Light</option>
-            <option value="corporate">Corporate Blue</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">URL Logo</label>
-          <input type="url" id="b_logo" placeholder="https://situs.com/logo.png" class="w-full border rounded-lg px-3 py-2">
-          <p class="text-[10px] text-slate-400 mt-1">Gunakan URL langsung, bukan upload file.</p>
-        </div>
+        <div><label class="block text-sm font-medium mb-1">Judul Form</label><input type="text" id="b_title" value="Registrasi Anggota" class="w-full border rounded-lg px-3 py-2"></div>
+        <div><label class="block text-sm font-medium mb-1">Sub-Judul</label><input type="text" id="b_subtitle" value="Lengkapi data pendaftaran Anda" class="w-full border rounded-lg px-3 py-2"></div>
+        <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Pesan Halaman Sukses</label><input type="text" id="b_success" value="Terima kasih! Data Anda telah berhasil dikirim. Tim kami akan menghubungi Anda segera." class="w-full border rounded-lg px-3 py-2"><p class="text-[10px] text-slate-400 mt-1">Ditampilkan di halaman sukses setelah user submit form.</p></div>
+        <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Link Redirect (Opsional)</label><input type="url" id="b_redirect" placeholder="contoh: detik.com (tanpa https:// juga bisa)" class="w-full border rounded-lg px-3 py-2"><p class="text-[10px] text-slate-400 mt-1">User akan di-redirect otomatis setelah 3 detik. Kosongkan jika tidak perlu.</p></div>
+        <div><label class="block text-sm font-medium mb-1">Tema Warna</label><select id="b_theme" class="w-full border rounded-lg px-3 py-2 bg-white"><option value="dark">Cyber Dark</option><option value="light">Minimalist Light</option><option value="corporate">Corporate Blue</option></select></div>
+        <div><label class="block text-sm font-medium mb-1">URL Logo</label><input type="url" id="b_logo" placeholder="https://situs.com/logo.png" class="w-full border rounded-lg px-3 py-2"><p class="text-[10px] text-slate-400 mt-1">Gunakan URL langsung, bukan upload file.</p></div>
       </div>
     </div>
 
     <!-- Step 3: Halaman & Wilayah -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
       <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-4">
-        <div>
-          <h2 class="text-xl font-bold"><i class="fa-solid fa-sliders text-blue-500"></i> Step 3: Urutan & Halaman</h2>
-          <p class="text-xs text-slate-500">Atur urutan field, assign halaman, dan pilih kedalaman wilayah.</p>
-        </div>
+        <div><h2 class="text-xl font-bold"><i class="fa-solid fa-sliders text-blue-500"></i> Step 3: Urutan & Halaman</h2><p class="text-xs text-slate-500">Atur urutan field, assign halaman, dan pilih kedalaman wilayah.</p></div>
         <div class="flex gap-3 flex-wrap">
-          <div class="bg-slate-100 p-2 rounded-xl border">
-            <span class="text-[10px] font-bold text-slate-500 block mb-1">Kedalaman Wilayah</span>
-            <select id="regionLevelSelect" class="text-xs border rounded p-1 bg-white font-medium" onchange="onRegionChange()">
-              <option value="none">Tanpa Wilayah</option>
-              <option value="provinsi">Provinsi Saja</option>
-              <option value="kabkota" selected>Provinsi + Kab/Kota</option>
-              <option value="kecamatan">Provinsi + Kab + Kec</option>
-            </select>
-          </div>
-          <div class="bg-slate-100 p-2 rounded-xl border">
-            <span class="text-[10px] font-bold text-slate-500 block mb-1">Halaman</span>
-            <div class="flex items-center gap-1">
-              <input type="number" id="pageCountSelect" value="2" min="1" max="20" class="text-xs border rounded p-1 bg-white font-medium w-16 text-center" onchange="onPageCountChange()" oninput="onPageCountChange()">
-              <span class="text-xs text-slate-400">halaman</span>
-            </div>
-          </div>
+          <div class="bg-slate-100 p-2 rounded-xl border"><span class="text-[10px] font-bold text-slate-500 block mb-1">Kedalaman Wilayah</span><select id="regionLevelSelect" class="text-xs border rounded p-1 bg-white font-medium" onchange="onRegionChange()"><option value="none">Tanpa Wilayah</option><option value="provinsi">Provinsi Saja</option><option value="kabkota" selected>Provinsi + Kab/Kota</option><option value="kecamatan">Provinsi + Kab + Kec</option></select></div>
+          <div class="bg-slate-100 p-2 rounded-xl border"><span class="text-[10px] font-bold text-slate-500 block mb-1">Halaman</span><div class="flex items-center gap-1"><input type="number" id="pageCountSelect" value="2" min="1" max="20" class="text-xs border rounded p-1 bg-white font-medium w-16 text-center" onchange="onPageCountChange()" oninput="onPageCountChange()"><span class="text-xs text-slate-400">halaman</span></div></div>
         </div>
       </div>
-
       <div class="overflow-hidden border border-slate-200 rounded-xl bg-white">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-            <tr>
-              <th class="px-4 py-3 w-16 text-center">Urut</th>
-              <th class="px-4 py-3">Label</th>
-              <th class="px-4 py-3 w-48">Tipe</th>
-              <th class="px-4 py-3 w-36">Halaman</th>
-            </tr>
-          </thead>
-          <tbody id="mappingBody" class="divide-y divide-slate-200"></tbody>
-        </table>
+        <table class="w-full text-left text-sm"><thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold"><tr><th class="px-4 py-3 w-16 text-center">Urut</th><th class="px-4 py-3">Label</th><th class="px-4 py-3 w-48">Tipe</th><th class="px-4 py-3 w-36">Halaman</th></tr></thead><tbody id="mappingBody" class="divide-y divide-slate-200"></tbody></table>
       </div>
-
       <div class="mt-8 pt-6 border-t text-center">
         <button onclick="compileStatelessForm()" id="btnGen" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-bold shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02] flex items-center gap-2 mx-auto">
           <span id="txtGen">Generate Live Link</span><div id="loadGen" class="loader hidden" style="border-color:rgba(255,255,255,0.2);border-left-color:#fff"></div>
@@ -177,232 +149,280 @@ body.dark #topSub{color:#94a3b8!important}
       </div>
     </div>
   </div>
+
 </div>
 
 <!-- Modal Output -->
 <div id="modalOut" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-    <div class="text-center">
-      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl mb-3"><i class="fa-solid fa-circle-check"></i></div>
-      <h3 class="text-lg font-bold text-slate-900">Portal Sukses Diluncurkan!</h3>
-      <p class="text-xs text-slate-500 mt-1">Tautan whitelabel siap digunakan.</p>
-    </div>
-    <div class="bg-slate-50 p-3 rounded-xl border flex items-center justify-between gap-2">
-      <input type="text" id="liveUrlLink" readonly class="bg-transparent text-xs font-mono text-blue-600 flex-1 overflow-x-auto focus:outline-none select-all">
-      <button onclick="copyLink()" class="bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold">Copy</button>
-    </div>
-    <div class="pt-2 flex gap-2">
-      <a id="lnkTest" href="#" target="_blank" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-center py-2.5 rounded-xl text-sm">Buka Link Form</a>
-      <button onclick="document.getElementById('modalOut').classList.add('hidden')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 rounded-xl text-sm border">Tutup</button>
-    </div>
+    <div class="text-center"><div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl mb-3"><i class="fa-solid fa-circle-check"></i></div><h3 class="text-lg font-bold text-slate-900">Portal Sukses Diluncurkan!</h3><p class="text-xs text-slate-500 mt-1">Tautan whitelabel siap digunakan.</p></div>
+    <div class="bg-slate-50 p-3 rounded-xl border flex items-center justify-between gap-2"><input type="text" id="liveUrlLink" readonly class="bg-transparent text-xs font-mono text-blue-600 flex-1 overflow-x-auto focus:outline-none select-all"><button onclick="copyLink()" class="bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold">Copy</button></div>
+    <div class="pt-2 flex gap-2"><a id="lnkTest" href="#" target="_blank" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-center py-2.5 rounded-xl text-sm">Buka Link Form</a><button onclick="document.getElementById('modalOut').classList.add('hidden')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 rounded-xl text-sm border">Tutup</button></div>
   </div>
 </div>
 
 <script>
-// Theme
-(function(){
-  var t=localStorage.getItem('ns-theme');
-  if(t==='dark')document.body.classList.add('dark'),document.getElementById('themeIcon').className='fa-solid fa-sun text-lg';
-})();
-function toggleTheme(){
-  var b=document.body,icon=document.getElementById('themeIcon');
-  b.classList.toggle('dark');
-  var isDark=b.classList.contains('dark');
-  icon.className='fa-solid '+(isDark?'fa-sun':'fa-moon')+' text-lg';
-  localStorage.setItem('ns-theme',isDark?'dark':'light');
-}
+(function(){var t=localStorage.getItem('ns-theme');if(t==='dark')document.body.classList.add('dark'),document.getElementById('themeIcon').className='fa-solid fa-sun text-lg';})();
+function toggleTheme(){var b=document.body,icon=document.getElementById('themeIcon');b.classList.toggle('dark');var isDark=b.classList.contains('dark');icon.className='fa-solid '+(isDark?'fa-sun':'fa-moon')+' text-lg';localStorage.setItem('ns-theme',isDark?'dark':'light');}
 
-let currentActionUrl="";
-let TOTAL_PAGES=2;
-let REGION_LEVEL="kabkota";
+var currentActionUrl="",currentFormUrl="";
+var TOTAL_PAGES=2,REGION_LEVEL="kabkota";
 
 function switchTab(m){
-  document.getElementById('mode-existing').classList.toggle('hidden',m!=='existing');
-  document.getElementById('mode-new').classList.toggle('hidden',m!=='new');
-  document.getElementById('tab-existing').className="flex-1 py-4 text-sm font-bold "+(m==='existing'?'text-blue-600 border-b-2 border-blue-600':'text-slate-500 border-b-2 border-transparent')+" transition-all";
-  document.getElementById('tab-new').className="flex-1 py-4 text-sm font-bold "+(m==='new'?'text-blue-600 border-b-2 border-blue-600':'text-slate-500 border-b-2 border-transparent')+" transition-all";
+  ['existing','new','admin'].forEach(function(t){
+    document.getElementById('mode-'+t).classList.toggle('hidden',t!==m);
+    document.getElementById('tab-'+t).className='flex-1 py-4 text-sm font-bold '+(t===m?'text-blue-600 border-b-2 border-blue-600':'text-slate-500 border-b-2 border-transparent')+' whitespace-nowrap px-2 transition-all';
+  });
+  if(m==='admin')loadFormList();
 }
 
-function onRegionChange(){
-  REGION_LEVEL=document.getElementById('regionLevelSelect').value;
-  updatePageSections();
-}
-
-function onPageCountChange(){
-  TOTAL_PAGES=parseInt(document.getElementById('pageCountSelect').value);
-  updatePageSections();
-}
+function onRegionChange(){REGION_LEVEL=document.getElementById('regionLevelSelect').value;updatePageSections();}
+function onPageCountChange(){TOTAL_PAGES=parseInt(document.getElementById('pageCountSelect').value);updatePageSections();}
 
 function updatePageSections(){
-  // Update all section-select dropdowns to reflect current TOTAL_PAGES
   document.querySelectorAll('.section-select').forEach(function(sel){
-    var cur=sel.value;
-    sel.innerHTML='';
-    for(var i=1;i<=TOTAL_PAGES;i++){
-      sel.innerHTML+='<option value="page'+i+'"'+(cur==='page'+i?' selected':'')+'>Halaman '+i+'</option>';
-    }
+    var cur=sel.value;sel.innerHTML='';
+    for(var i=1;i<=TOTAL_PAGES;i++){sel.innerHTML+='<option value="page'+i+'"'+(cur==='page'+i?' selected':'')+'>Halaman '+i+'</option>';}
   });
-  // Hide/show wilayah fields based on regionLevel
   document.querySelectorAll('#mappingBody tr').forEach(function(tr){
     var role=tr.querySelector('.role-select').value;
-    var row=tr;
-    if(role==='kecamatan'&&REGION_LEVEL==='kabkota')row.style.opacity='0.4';
-    else if(role==='kecamatan'&&REGION_LEVEL==='provinsi')row.style.opacity='0.4';
-    else if(role==='kabkota'&&REGION_LEVEL==='provinsi')row.style.opacity='0.4';
-    else if((role==='provinsi'||role==='kabkota'||role==='kecamatan')&&REGION_LEVEL==='none')row.style.opacity='0.4';
-    else row.style.opacity='1';
+    if(role==='kecamatan'&&REGION_LEVEL!=='kecamatan')tr.style.opacity='0.4';
+    else if(role==='kabkota'&&(REGION_LEVEL==='provinsi'||REGION_LEVEL==='none'))tr.style.opacity='0.4';
+    else if(role==='provinsi'&&REGION_LEVEL==='none')tr.style.opacity='0.4';
+    else tr.style.opacity='1';
   });
 }
 
 function addField(lbl,role){
-  var c=document.getElementById('fieldContainer');
-  var id='f_'+Date.now()+Math.random().toString(36).substr(2,5);
-  var d=document.createElement('div');
-  d.className="flex gap-2 items-center bg-slate-50 p-2 border rounded-xl shadow-sm";d.id=id;
+  var c=document.getElementById('fieldContainer'),id='f_'+Date.now()+Math.random().toString(36).substr(2,5);
+  var d=document.createElement('div');d.className="flex gap-2 items-center bg-slate-50 p-2 border rounded-xl shadow-sm";d.id=id;
   d.innerHTML='<input type="text" value="'+lbl+'" placeholder="Label..." class="dyn-input flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm" data-role="'+role+'"><button onclick="document.getElementById(\''+id+'\').remove()" class="text-red-400 hover:text-red-600 px-2"><i class="fa-solid fa-trash"></i></button>';
   c.appendChild(d);
 }
 
-document.addEventListener("DOMContentLoaded",function(){
-  [['Nama Lengkap','normal'],['Email Aktif','normal'],['Asal Instansi','normal'],['Jenis Kelamin','gender'],['Provinsi','provinsi'],['Kabupaten/Kota','kabkota'],['Kecamatan','kecamatan']].forEach(function(f){addField(f[0],f[1])});
-});
+document.addEventListener("DOMContentLoaded",function(){[['Nama Lengkap','normal'],['Email Aktif','normal'],['Asal Instansi','normal'],['Jenis Kelamin','gender'],['Provinsi','provinsi'],['Kabupaten/Kota','kabkota'],['Kecamatan','kecamatan']].forEach(function(f){addField(f[0],f[1])});});
 
 function createFormOnDrive(){
   var txt=document.getElementById('txtCreate'),load=document.getElementById('loadCreate');
-  var inps=document.querySelectorAll('.dyn-input');
-  var fields=Array.from(inps).map(function(i){return{label:i.value,role:i.dataset.role}}).filter(function(f){return f.label.trim()!==''});
+  var inps=document.querySelectorAll('.dyn-input'),fields=Array.from(inps).map(function(i){return{label:i.value,role:i.dataset.role}}).filter(function(f){return f.label.trim()!==''});
   if(!fields.length)return Swal.fire('Peringatan','Minimal 1 kolom.','warning');
-  txt.innerText="Membuat...";load.classList.remove('hidden');
-  document.getElementById('btnCreate').disabled=true;
+  txt.innerText="Membuat...";load.classList.remove('hidden');document.getElementById('btnCreate').disabled=true;
   google.script.run.withSuccessHandler(function(res){
-    txt.innerText="Buat Form di Drive Saya";load.classList.add('hidden');
-    document.getElementById('btnCreate').disabled=false;
+    txt.innerText="Buat Form di Drive Saya";load.classList.add('hidden');document.getElementById('btnCreate').disabled=false;
     if(!res.success)return Swal.fire('Error',res.message,'error');
     Swal.fire({icon:'success',title:'Berhasil!',text:'Menganalisis form...',timer:1500,showConfirmButton:false});
-    document.getElementById('formUrl').value=res.url;
-    parseForm(res.url);
+    document.getElementById('formUrl').value=res.url;parseForm(res.url);
   }).autoCreateGoogleForm({title:document.getElementById('newFormTitle').value,fields:fields});
 }
 
 function parseForm(forceUrl){
   var url=typeof forceUrl==='string'?forceUrl:document.getElementById('formUrl').value;
   if(!url||!url.includes('docs.google.com/forms'))return Swal.fire('Error','Link tidak valid.','error');
-  document.getElementById('txtParse').innerText="Memproses...";
-  document.getElementById('loadParse').classList.remove('hidden');
+  currentFormUrl=url;
+  document.getElementById('txtParse').innerText="Memproses...";document.getElementById('loadParse').classList.remove('hidden');
   google.script.run.withSuccessHandler(function(res){
-    document.getElementById('txtParse').innerText="Analisis Form";
-    document.getElementById('loadParse').classList.add('hidden');
+    document.getElementById('txtParse').innerText="Analisis Form";document.getElementById('loadParse').classList.add('hidden');
     if(!res.success)return Swal.fire('Gagal',res.message,'error');
     currentActionUrl=res.formActionUrl;
     renderTableMapping(res.fields);
     document.getElementById('step2').classList.remove('hidden');
+    autoSaveForm(currentFormUrl);
   }).parseGoogleForm(url);
 }
 
-function guessRole(label){
-  var l=label.toLowerCase();
-  if(l.includes('prov'))return'provinsi';
-  if(l.includes('kab')||l.includes('kota'))return'kabkota';
-  if(l.includes('kec'))return'kecamatan';
-  if(l.includes('kelamin')||l.includes('gender'))return'gender';
-  if(l.includes('email'))return'normal'; // tetep text input, bukan email type
-  return'normal';
-}
-
-function guessPage(label){
-  var l=label.toLowerCase();
-  if(l.includes('prov')||l.includes('kab')||l.includes('kota')||l.includes('kec'))return'page2';
-  return'page1';
-}
+function guessRole(l){var x=l.toLowerCase();if(x.includes('prov'))return'provinsi';if(x.includes('kab')||x.includes('kota'))return'kabkota';if(x.includes('kec'))return'kecamatan';if(x.includes('kelamin')||x.includes('gender'))return'gender';return'normal';}
+function guessPage(l){var x=l.toLowerCase();if(x.includes('prov')||x.includes('kab')||x.includes('kota')||x.includes('kec'))return'page2';return'page1';}
 
 function renderTableMapping(fields){
   var tbody=document.getElementById('mappingBody');tbody.innerHTML='';
   fields.forEach(function(f){
-    var role=guessRole(f.label);
-    var sec=guessPage(f.label);
-    var tr=document.createElement('tr');tr.className="hover:bg-slate-50";
-    tr.dataset.entry=f.entry;tr.dataset.label=f.label;
-    tr.innerHTML='\
-      <td class="px-2 py-2 text-center">\
-        <button onclick="moveRow(this,\'up\')" class="p-1 text-slate-400 hover:text-blue-600"><i class="fa-solid fa-chevron-up text-xs"></i></button>\
-        <button onclick="moveRow(this,\'down\')" class="p-1 text-slate-400 hover:text-blue-600"><i class="fa-solid fa-chevron-down text-xs"></i></button>\
-      </td>\
-      <td class="px-4 py-2 font-medium text-slate-700">'+f.label+' <div class="text-[10px] text-slate-400 font-mono">'+f.entry+'</div></td>\
-      <td class="px-4 py-2">\
-        <select class="role-select w-full border rounded-lg px-2 py-1 text-xs bg-white" onchange="onRoleChange(this)">\
-          <option value="normal" '+(role==='normal'?'selected':'')+'>Input Teks</option>\
-          <option value="gender" '+(role==='gender'?'selected':'')+'>Dropdown Gender</option>\
-          <option value="provinsi" '+(role==='provinsi'?'selected':'')+'>Dropdown Provinsi</option>\
-          <option value="kabkota" '+(role==='kabkota'?'selected':'')+'>Dropdown Kab/Kota</option>\
-          <option value="kecamatan" '+(role==='kecamatan'?'selected':'')+'>Dropdown Kecamatan</option>\
-          <option value="ignore">Abaikan</option>\
-        </select>\
-      </td>\
-      <td class="px-4 py-2">\
-        <select class="section-select w-full border rounded-lg px-2 py-1 text-xs bg-slate-50" onchange="onPageAssign(this)">\
-        </select>\
-      </td>';
+    var role=guessRole(f.label),sec=guessPage(f.label);
+    var tr=document.createElement('tr');tr.className="hover:bg-slate-50";tr.dataset.entry=f.entry;tr.dataset.label=f.label;
+    tr.innerHTML='<td class="px-2 py-2 text-center"><button onclick="moveRow(this,\'up\')" class="p-1 text-slate-400 hover:text-blue-600"><i class="fa-solid fa-chevron-up text-xs"></i></button><button onclick="moveRow(this,\'down\')" class="p-1 text-slate-400 hover:text-blue-600"><i class="fa-solid fa-chevron-down text-xs"></i></button></td><td class="px-4 py-2 font-medium text-slate-700">'+f.label+' <div class="text-[10px] text-slate-400 font-mono">'+f.entry+'</div></td><td class="px-4 py-2"><select class="role-select w-full border rounded-lg px-2 py-1 text-xs bg-white" onchange="onRoleChange(this)"><option value="normal" '+(role==='normal'?'selected':'')+'>Input Teks</option><option value="gender" '+(role==='gender'?'selected':'')+'>Dropdown Gender</option><option value="provinsi" '+(role==='provinsi'?'selected':'')+'>Dropdown Provinsi</option><option value="kabkota" '+(role==='kabkota'?'selected':'')+'>Dropdown Kab/Kota</option><option value="kecamatan" '+(role==='kecamatan'?'selected':'')+'>Dropdown Kecamatan</option><option value="ignore">Abaikan</option></select></td><td class="px-4 py-2"><select class="section-select w-full border rounded-lg px-2 py-1 text-xs bg-slate-50" onchange="onPageAssign(this)"></select></td>';
     tbody.appendChild(tr);
   });
   updatePageSections();
 }
 
-function onRoleChange(sel){updatePageSections()}
-function onPageAssign(sel){updatePageSections()}
-
-function moveRow(btn,dir){
-  var r=btn.closest('tr');
-  if(dir==='up'){var p=r.previousElementSibling;if(p)r.parentNode.insertBefore(r,p)}
-  else{var n=r.nextElementSibling;if(n)r.parentNode.insertBefore(n,r)}
-}
+function onRoleChange(sel){updatePageSections();}
+function onPageAssign(sel){updatePageSections();}
+function moveRow(btn,dir){var r=btn.closest('tr');if(dir==='up'){var p=r.previousElementSibling;if(p)r.parentNode.insertBefore(r,p);}else{var n=r.nextElementSibling;if(n)r.parentNode.insertBefore(n,r);}}
 
 function compileStatelessForm(){
-  var btnGen=document.getElementById('btnGen');
-  btnGen.disabled=true;btnGen.innerText="Mengompilasi...";
-
-  var config={
-    formActionUrl:currentActionUrl,
-    regionLevel:REGION_LEVEL,
-    branding:{
-      title:document.getElementById('b_title').value,
-      subtitle:document.getElementById('b_subtitle').value,
-      successMsg:document.getElementById('b_success').value,
-      redirectUrl:document.getElementById('b_redirect').value,
-      logo:document.getElementById('b_logo').value,
-      themeStyle:document.getElementById('b_theme').value
-    },
-    orderedFields:[],
-    regions:{}
-  };
-
+  var btnGen=document.getElementById('btnGen');btnGen.disabled=true;btnGen.innerText="Mengompilasi...";
+  var config={formActionUrl:currentActionUrl,regionLevel:REGION_LEVEL,branding:{title:document.getElementById('b_title').value,subtitle:document.getElementById('b_subtitle').value,successMsg:document.getElementById('b_success').value,redirectUrl:document.getElementById('b_redirect').value,logo:document.getElementById('b_logo').value,themeStyle:document.getElementById('b_theme').value},orderedFields:[],regions:{}};
   document.querySelectorAll('#mappingBody tr').forEach(function(tr){
-    var role=tr.querySelector('.role-select').value;
-    if(role==='ignore')return;
-    var entry=tr.dataset.entry,label=tr.dataset.label;
-    var pageSection=tr.querySelector('.section-select').value;
-
-    // Skip wilayah fields based on regionLevel
+    var role=tr.querySelector('.role-select').value;if(role==='ignore')return;
+    var entry=tr.dataset.entry,label=tr.dataset.label,pageSection=tr.querySelector('.section-select').value;
     if(REGION_LEVEL==='none'&&(role==='provinsi'||role==='kabkota'||role==='kecamatan'))return;
     if(REGION_LEVEL==='provinsi'&&(role==='kabkota'||role==='kecamatan'))return;
     if(REGION_LEVEL==='kabkota'&&role==='kecamatan')return;
-
     if(role==='provinsi'||role==='kabkota'||role==='kecamatan')config.regions[role]=entry;
     config.orderedFields.push({label:label,entry:entry,role:role,pageSection:pageSection,type:label.toLowerCase().includes('email')?'email':'text'});
   });
-
   google.script.run.withSuccessHandler(function(res){
     btnGen.disabled=false;btnGen.innerText="Generate Live Link";
     if(!res.success)return Swal.fire('Error',res.message,'error');
-    document.getElementById('liveUrlLink').value=res.liveUrl;
-    document.getElementById('lnkTest').href=res.liveUrl;
+    document.getElementById('liveUrlLink').value=res.liveUrl;document.getElementById('lnkTest').href=res.liveUrl;
     document.getElementById('modalOut').classList.remove('hidden');
   }).generateLiveSaaSLink(config);
 }
 
-function copyLink(){
-  var i=document.getElementById('liveUrlLink');i.select();document.execCommand("copy");
-  Swal.fire({icon:'success',title:'Link Disalin!',toast:true,position:'top-end',timer:1500,showConfirmButton:false});
+function copyLink(){var i=document.getElementById('liveUrlLink');i.select();document.execCommand("copy");Swal.fire({icon:'success',title:'Link Disalin!',toast:true,position:'top-end',timer:1500,showConfirmButton:false});}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+
+var adminFormUrl='';
+
+// Load saved forms on tab switch + auto-refresh
+function loadFormList(){
+  google.script.run.withSuccessHandler(function(r){
+    if(!r.success)return;
+    var sel=document.getElementById('adminFormSelect');
+    sel.innerHTML='<option value="">-- Pilih form tersimpan ('+r.list.length+') --</option>';
+    r.list.forEach(function(f){
+      sel.innerHTML+='<option value="'+f.url+'">'+f.title+'</option>';
+    });
+  }).getFormList();
 }
+
+function onFormSelect(){
+  var url=document.getElementById('adminFormSelect').value;
+  if(!url)return;
+  document.getElementById('adminFormUrl').value=url;
+  loadAdmin();
+}
+
+function autoSaveForm(url){
+  var title=document.getElementById('b_title').value||'Untitled';
+  google.script.run.saveFormToList(url,title);
+}
+
+function loadAdmin(){
+  var url=document.getElementById('adminFormUrl').value;
+  if(!url||!url.includes('docs.google.com/forms'))return Swal.fire('Error','Link tidak valid.','error');
+  adminFormUrl=url;
+  document.getElementById('txtAdmin').innerText="Memuat...";document.getElementById('loadAdmin').classList.remove('hidden');
+  document.getElementById('btnAdmin').disabled=true;
+  google.script.run.withSuccessHandler(renderAdmin).getFormStats(url);
+}
+
+function renderAdmin(stats){
+  document.getElementById('txtAdmin').innerText="Muat Data";document.getElementById('loadAdmin').classList.add('hidden');
+  document.getElementById('btnAdmin').disabled=false;
+  if(!stats.success)return Swal.fire('Error',stats.message,'error');
+
+  var c=document.getElementById('adminContent');c.classList.remove('hidden');
+  var accBg=stats.accepting?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700';
+  var accTxt=stats.accepting?'<i class="fa-solid fa-circle-check"></i> Terbuka':'<i class="fa-solid fa-circle-xmark"></i> Tertutup';
+
+  c.innerHTML='\
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">\
+      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-2xl font-bold text-blue-600">'+stats.total+'</div><div class="text-xs text-slate-500">Total Response</div></div>\
+      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-sm font-bold text-blue-600 truncate">'+formatDate(stats.lastSubmission)+'</div><div class="text-xs text-slate-500">Terakhir Submit</div></div>\
+      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-sm font-bold '+accBg+' rounded-full px-3 py-1 inline-block">'+accTxt+'</div><br><div class="text-xs text-slate-500 mt-1">Status</div></div>\
+      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">\
+        <button onclick="toggleFormStatus()" class="w-full text-sm font-bold px-3 py-2 rounded-lg '+(stats.accepting?'bg-red-50 text-red-600 hover:bg-red-100':'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')+'">'+(stats.accepting?'Tutup Form':'Buka Form')+'</button>\
+        <div class="text-xs text-slate-500 mt-1 text-center">Manual</div>\
+      </div>\
+    </div>\
+    <div class="flex gap-3 flex-wrap">\
+      '+sheetSection(stats)+'\
+    </div>\
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">\
+      <h3 class="font-bold text-sm mb-3"><i class="fa-solid fa-clock text-blue-500"></i> Auto-Close Otomatis</h3>\
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">\
+        <div><label class="text-xs font-medium">Mode</label><select id="ac_mode" class="w-full border rounded-lg px-2 py-1.5 text-xs" onchange="acModeChange()"><option value="off">Nonaktif</option><option value="time">Berdasarkan Waktu</option><option value="count">Berdasarkan Jumlah</option><option value="unique">Berdasarkan Unique</option><option value="combo">Kombinasi (Waktu / Jumlah)</option></select></div>\
+        <div id="ac_time_wrap" class="hidden"><label class="text-xs font-medium">Tutup Pada</label><input type="datetime-local" id="ac_closeAt" class="w-full border rounded-lg px-2 py-1.5 text-xs"></div>\
+        <div id="ac_count_wrap" class="hidden"><label class="text-xs font-medium">Max Submission</label><input type="number" id="ac_maxSub" value="100" min="1" class="w-full border rounded-lg px-2 py-1.5 text-xs"></div>\
+        <div id="ac_unique_wrap" class="hidden"><label class="text-xs font-medium">Field Unique</label><select id="ac_uniqueField" class="w-full border rounded-lg px-2 py-1.5 text-xs"></select></div>\
+        <div><button onclick="saveAutoClose()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 rounded-lg"><i class="fa-solid fa-floppy-disk mr-1"></i>Simpan</button></div>\
+      </div>\
+      <div id="ac_status" class="text-xs text-slate-500 mt-2"></div>\
+    </div>\
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">\
+      <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-sm"><i class="fa-solid fa-table-list text-blue-500"></i> Data Respons</h3><button onclick="refreshData()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button></div>\
+      <div id="dataTable" class="overflow-x-auto max-h-96 text-xs"></div>\
+    </div>';
+
+  // Load auto-close config + response data
+  google.script.run.withSuccessHandler(loadAutoCloseConfig).getAutoCloseConfig(adminFormUrl);
+  refreshData();
+  acModeChange();
+}
+
+function sheetSection(s){
+  if(s.sheetUrl)return '<a href="'+s.sheetUrl+'" target="_blank" class="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl text-sm font-medium border border-green-200 hover:bg-green-100"><i class="fa-solid fa-table"></i> Buka Google Sheet</a><button onclick="linkSheet()" class="inline-flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl text-sm border hover:bg-slate-200"><i class="fa-solid fa-link"></i> Hubungkan Ulang</button>';
+  return '<button onclick="linkSheet()" class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-plus"></i> Hubungkan ke Google Sheet</button>';
+}
+
+function linkSheet(){
+  Swal.fire({title:'Menghubungkan...',allowOutsideClick:false,showConfirmButton:false});Swal.showLoading();
+  google.script.run.withSuccessHandler(function(r){
+    Swal.close();
+    if(r.success)loadAdmin();
+    else Swal.fire('Error',r.message,'error');
+  }).linkSheetToForm(adminFormUrl);
+}
+
+function toggleFormStatus(){
+  google.script.run.withSuccessHandler(function(r){
+    if(r.success)loadAdmin();
+  }).toggleForm(adminFormUrl);
+}
+
+function loadAutoCloseConfig(res){
+  if(!res.success||!res.config)return;
+  var cfg=res.config;
+  document.getElementById('ac_mode').value=cfg.mode||'off';
+  if(cfg.closeAt)document.getElementById('ac_closeAt').value=cfg.closeAt;
+  if(cfg.maxSubmissions)document.getElementById('ac_maxSub').value=cfg.maxSubmissions;
+  if(cfg.uniqueField)document.getElementById('ac_uniqueField').value=cfg.uniqueField;
+  acModeChange();
+  document.getElementById('ac_status').innerText=cfg.mode!=='off'?'Tersimpan. Auto-close: '+cfg.mode+' — cek setiap dashboard load.':'';
+}
+
+function acModeChange(){
+  var m=document.getElementById('ac_mode').value;
+  document.getElementById('ac_time_wrap').classList.toggle('hidden',m!=='time'&&m!=='combo');
+  document.getElementById('ac_count_wrap').classList.toggle('hidden',m!=='count');
+  document.getElementById('ac_unique_wrap').classList.toggle('hidden',m!=='unique'&&m!=='combo');
+  if(m==='unique'||m==='combo'){
+    google.script.run.withSuccessHandler(function(r){
+      var sel=document.getElementById('ac_uniqueField');
+      sel.innerHTML='(loading...)';
+      if(r.success&&r.fields)sel.innerHTML=r.fields.map(function(f){return'<option value="'+f+'">'+f+'</option>'}).join('');
+    }).parseGoogleForm(adminFormUrl);
+  }
+}
+
+function saveAutoClose(){
+  var cfg={mode:document.getElementById('ac_mode').value};
+  if(cfg.mode==='time'||cfg.mode==='combo')cfg.closeAt=document.getElementById('ac_closeAt').value;
+  if(cfg.mode==='count')cfg.maxSubmissions=parseInt(document.getElementById('ac_maxSub').value)||100;
+  if(cfg.mode==='unique'){cfg.uniqueField=document.getElementById('ac_uniqueField').value;cfg.maxSubmissions=parseInt(document.getElementById('ac_maxSub').value)||100;}
+  if(cfg.mode==='combo'){cfg.closeAt=document.getElementById('ac_closeAt').value;cfg.uniqueField=document.getElementById('ac_uniqueField').value;cfg.maxSubmissions=parseInt(document.getElementById('ac_maxSub').value)||100;cfg.combo='whichever_first';}
+  google.script.run.withSuccessHandler(function(r){
+    if(r.success){document.getElementById('ac_status').innerText='✅ Auto-close disimpan.';Swal.fire({icon:'success',title:'Tersimpan!',timer:1500,showConfirmButton:false});}
+    else Swal.fire('Error',r.message,'error');
+  }).saveAutoCloseConfig(adminFormUrl,cfg);
+}
+
+function refreshData(){
+  google.script.run.withSuccessHandler(function(r){
+    if(!r.success)return;
+    var h='<table class="w-full border-collapse"><thead><tr class="bg-slate-50">';
+    r.headers.forEach(function(hdr){h+='<th class="px-3 py-2 text-left font-semibold border-b whitespace-nowrap">'+hdr+'</th>';});
+    h+='</tr></thead><tbody>';
+    r.rows.forEach(function(row){h+='<tr class="border-b hover:bg-slate-50">';row.forEach(function(cell){h+='<td class="px-3 py-1.5 whitespace-nowrap max-w-xs truncate">'+cell+'</td>';});h+='</tr>';});
+    h+='</tbody></table><p class="text-slate-400 mt-2">Menampilkan '+r.rows.length+' dari '+r.total+' response</p>';
+    document.getElementById('dataTable').innerHTML=h;
+  }).getResponseData(adminFormUrl,30);
+}
+
+function formatDate(d){if(!d)return'(belum ada)';return new Date(d).toLocaleString('id-ID');}
 </script>
 </body>
 </html>
