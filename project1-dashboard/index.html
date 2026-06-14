@@ -315,10 +315,12 @@ function renderAdmin(stats){
   if(!stats.success)return Swal.fire('Error',stats.message,'error');
 
   var c=document.getElementById('adminContent');c.classList.remove('hidden');
+  var nsBadge=stats.isNerdStudio?'<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium"><i class="fa-solid fa-bolt"></i> Nerd Studio</span>':'<span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">Google Forms</span>';
   var accBg=stats.accepting?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700';
   var accTxt=stats.accepting?'<i class="fa-solid fa-circle-check"></i> Terbuka':'<i class="fa-solid fa-circle-xmark"></i> Tertutup';
 
   c.innerHTML='\
+    '+nsBadge+'\</div>\
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">\
       <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-2xl font-bold text-blue-600">'+stats.total+'</div><div class="text-xs text-slate-500">Total Response</div></div>\
       <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-sm font-bold text-blue-600 truncate">'+formatDate(stats.lastSubmission)+'</div><div class="text-xs text-slate-500">Terakhir Submit</div></div>\

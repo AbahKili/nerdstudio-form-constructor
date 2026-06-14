@@ -18,7 +18,7 @@ function autoCreateGoogleForm(formData) {
   try {
     var form = FormApp.create(formData.title || 'Form Baru');
     form.setCollectEmail(false);
-    form.setDescription(formData.description || 'Dibuat oleh Nerd Studio Form Constructor');
+    form.setDescription((formData.description || 'Dibuat oleh Nerd Studio Form Constructor') + '\n\n🏗️ Built with Nerd Studio Form Constructor — ' + new Date().toISOString().split('T')[0]);
     (formData.fields || []).forEach(function(f) {
       var item;
       switch (f.type) {
@@ -63,6 +63,14 @@ function generateLiveSaaSLink(configObj) {
 
 function extractId(url) { var m = url.match(/\/d\/([^/]+)/); return m ? m[1] : null; }
 
+function isNerdStudioForm(formUrl) {
+  try {
+    var form = FormApp.openByUrl(formUrl);
+    var desc = form.getDescription() || '';
+    return desc.indexOf('🏗️ Built with Nerd Studio Form Constructor') !== -1;
+  } catch(e) { return false; }
+}
+
 function getFormStats(formUrl) {
   try {
     var form = FormApp.openByUrl(formUrl);
@@ -70,7 +78,7 @@ function getFormStats(formUrl) {
     var sheetUrl = '';
     try { if (form.getDestinationId()) sheetUrl = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch(e) {}
     var last = responses.length > 0 ? responses[responses.length - 1].getTimestamp().toISOString() : '';
-    return { success: true, total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl, formId: extractId(formUrl) };
+    return { success: true, total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl, formId: extractId(formUrl), isNerdStudio: isNerdStudioForm(formUrl) };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
