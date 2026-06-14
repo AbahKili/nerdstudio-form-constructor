@@ -311,11 +311,18 @@ function loadAdmin(){
   var url=document.getElementById('adminFormUrl').value;
   if(!url||!url.includes('docs.google.com/forms'))return Swal.fire('Error','Link tidak valid.','error');
   adminFormUrl=url;
+  currentFormUrl=url; // For live link generation
   document.getElementById('txtAdmin').innerText="Memuat...";document.getElementById('loadAdmin').classList.remove('hidden');
   document.getElementById('btnAdmin').disabled=true;
-  // Auto-save this form to list
-  google.script.run.withSuccessHandler(function(r){if(r.success)loadFormList();}).saveFormToList(url,'');
-  google.script.run.withSuccessHandler(renderAdmin).getFormStats(url);
+  // Load stats + data first, then save form with correct title
+  google.script.run.withSuccessHandler(function(stats){
+    if(!stats.success){renderAdmin(stats);return;}
+    // Save to list with real title from stats
+    google.script.run.withSuccessHandler(function(r){
+      loadFormList();
+      renderAdmin(stats);
+    }).saveFormToList(url, stats.isNerdStudio ? (stats.title || '') : '');
+  }).getFormStats(url);
 }
 
 function renderAdmin(stats){
@@ -426,12 +433,16 @@ function saveAutoClose(){
 
 function refreshData(){
   google.script.run.withSuccessHandler(function(r){
-    if(!r.success)return;
+    if(!r.success){document.getElementById('dataTable').innerHTML='<p class="text-red-500 text-sm">Error: '+r.message+'</p>';return;}
+    if(!r.rows||r.rows.length===0){
+      document.getElementById('dataTable').innerHTML='<p class="text-slate-400 text-sm">Belum ada response. Isi form untuk melihat data di sini.</p>';
+      return;
+    }
     var h='<table class="w-full border-collapse"><thead><tr class="bg-slate-50">';
-    r.headers.forEach(function(hdr){h+='<th class="px-3 py-2 text-left font-semibold border-b whitespace-nowrap">'+hdr+'</th>';});
+    r.headers.forEach(function(hdr){h+='<th class="px-3 py-2 text-left font-semibold border-b whitespace-nowrap">'+String(hdr)+'</th>';});
     h+='</tr></thead><tbody>';
-    r.rows.forEach(function(row){h+='<tr class="border-b hover:bg-slate-50">';row.forEach(function(cell){h+='<td class="px-3 py-1.5 whitespace-nowrap max-w-xs truncate">'+cell+'</td>';});h+='</tr>';});
-    h+='</tbody></table><p class="text-slate-400 mt-2">Menampilkan '+r.rows.length+' dari '+r.total+' response</p>';
+    r.rows.forEach(function(row){h+='<tr class="border-b hover:bg-slate-50">';row.forEach(function(cell){h+='<td class="px-3 py-1.5 whitespace-nowrap max-w-xs truncate">'+String(cell)+'</td>';});h+='</tr>';});
+    h+='</tbody></table><p class="text-slate-400 mt-2 text-xs">Menampilkan '+r.rows.length+' dari '+r.total+' response ('+(r.source||'?')+')</p>';
     document.getElementById('dataTable').innerHTML=h;
   }).getResponseData(adminFormUrl,30);
 }

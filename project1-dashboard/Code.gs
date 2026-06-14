@@ -3,7 +3,7 @@
  * Execute As: User accessing | Access: Anyone with Google
  */
 
-var RENDERER_URL = "https://script.google.com/macros/s/AKfycbwCXR_4721e2n83hTa0x49V2lf4Lk1RML-BJCp-Twg/exec";
+var RENDERER_URL = "https://script.google.com/macros/s/AKfycbxWtPvGVYFie7xcj-hK8tzDGWqkMyj-MngOXf_-eYzU450tjsJUHjLRW3gZbrAENcbl/exec";
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -102,7 +102,9 @@ function getFormStats(formUrl) {
       var sheetUrl = '';
       try { if (form.getDestinationId()) sheetUrl = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch(e) {}
       var last = responses.length > 0 ? responses[responses.length - 1].getTimestamp().toISOString() : '';
-      return { success: true, total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl, formId: extractId(formUrl), isNerdStudio: isNerdStudioForm(urls[i]), triedUrl: urls[i] };
+      var ftitle = '';
+      try { ftitle = form.getTitle(); } catch(e) {}
+      return { success: true, total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl, formId: extractId(formUrl), isNerdStudio: isNerdStudioForm(urls[i]), triedUrl: urls[i], title: ftitle };
     } catch (err) { lastErr = err.toString(); }
   }
   return { success: false, message: lastErr + ' | tried: ' + urls.join(', ') };
@@ -122,7 +124,6 @@ function getResponseData(formUrl, limit) {
   try {
     // Try reading from linked Sheet first (picks up manual edits too)
     var form = FormApp.openByUrl(toEditUrl(formUrl));
-    var responses = form.getResponses();
     try {
       var destId = form.getDestinationId();
       if (destId) {
