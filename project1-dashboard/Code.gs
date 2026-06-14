@@ -19,6 +19,11 @@ function autoCreateGoogleForm(formData) {
     var form = FormApp.create(formData.title || 'Form Baru');
     form.setCollectEmail(false);
     form.setDescription((formData.description || 'Dibuat oleh Nerd Studio Form Constructor') + '\n\n🏗️ Built with Nerd Studio Form Constructor — ' + new Date().toISOString().split('T')[0]);
+    // Auto-link Google Sheet
+    try {
+      var ss = SpreadsheetApp.create(form.getTitle() + ' — Responses');
+      form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+    } catch(e) {}
     (formData.fields || []).forEach(function(f) {
       var item;
       switch (f.type) {
@@ -30,7 +35,7 @@ function autoCreateGoogleForm(formData) {
       }
       item.setTitle(f.label).setRequired(f.required !== false);
     });
-    return { success: true, url: form.getPublishedUrl(), id: form.getId() };
+    return { success: true, url: form.getPublishedUrl(), editUrl: 'https://docs.google.com/forms/d/' + form.getId() + '/edit', id: form.getId() };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
@@ -80,21 +85,26 @@ function toEditUrl(url) {
 
 function isNerdStudioForm(formUrl) {
   try {
-    var form = FormApp.openByUrl(toEditUrl);
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
     var desc = form.getDescription() || '';
     return desc.indexOf('🏗️ Built with Nerd Studio Form Constructor') !== -1;
   } catch(e) { return false; }
 }
 
 function getFormStats(formUrl) {
-  try {
-    var form = FormApp.openByUrl(toEditUrl(formUrl));
-    var responses = form.getResponses();
-    var sheetUrl = '';
-    try { if (form.getDestinationId()) sheetUrl = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch(e) {}
-    var last = responses.length > 0 ? responses[responses.length - 1].getTimestamp().toISOString() : '';
-    return { success: true, total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl, formId: extractId(formUrl), isNerdStudio: isNerdStudioForm(formUrl) };
-  } catch (err) { return { success: false, message: err.toString() }; }
+  var urls = [toEditUrl(formUrl), formUrl];
+  var lastErr = '';
+  for (var i = 0; i < urls.length; i++) {
+    try {
+      var form = FormApp.openByUrl(urls[i]);
+      var responses = form.getResponses();
+      var sheetUrl = '';
+      try { if (form.getDestinationId()) sheetUrl = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch(e) {}
+      var last = responses.length > 0 ? responses[responses.length - 1].getTimestamp().toISOString() : '';
+      return { success: true, total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl, formId: extractId(formUrl), isNerdStudio: isNerdStudioForm(urls[i]), triedUrl: urls[i] };
+    } catch (err) { lastErr = err.toString(); }
+  }
+  return { success: false, message: lastErr + ' | tried: ' + urls.join(', ') };
 }
 
 function linkSheetToForm(formUrl) {

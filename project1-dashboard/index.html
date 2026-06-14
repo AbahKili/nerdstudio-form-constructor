@@ -211,7 +211,7 @@ function createFormOnDrive(){
     txt.innerText="Buat Form di Drive Saya";load.classList.add('hidden');document.getElementById('btnCreate').disabled=false;
     if(!res.success)return Swal.fire('Error',res.message,'error');
     Swal.fire({icon:'success',title:'Berhasil!',text:'Menganalisis form...',timer:1500,showConfirmButton:false});
-    document.getElementById('formUrl').value=res.url;autoSaveForm(res.url);parseForm(res.url);
+    document.getElementById('formUrl').value=res.url;autoSaveForm(res.editUrl||res.url);parseForm(res.url);
   }).autoCreateGoogleForm({title:document.getElementById('newFormTitle').value,fields:fields});
 }
 
