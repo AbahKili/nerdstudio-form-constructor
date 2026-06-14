@@ -217,20 +217,23 @@ var f=document.createElement('form');f.method='POST';f.action=CF.formActionUrl;f
 fd.forEach(function(v,k){var i=document.createElement('input');i.type='hidden';i.name=k;i.value=v;f.appendChild(i)});
 document.body.appendChild(f);f.submit();document.body.removeChild(f);
 
-// Popup after 1.5s
+// Show success page
 setTimeout(function(){
-l.classList.add('hn');
-Swal.fire({
-title:CF.branding.successMsg||'Berhasil!',
-text:'Data Anda telah terkirim.',
-icon:'success',
-confirmButtonColor:T.bt
-}).then(function(){
-document.getElementById('mf').reset();
-if(totalPages>1)gp(0);
-b.disabled=false;
-});
-},1500);
+var okIcon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="'+T.bt+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:64px;height:64px;margin:0 auto 1rem;display:block"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+var sc='<div style="text-align:center;padding:4rem 1rem;max-width:480px;margin:0 auto">';
+sc+=okIcon;
+sc+='<h1 style="font-size:1.5rem;font-weight:700;margin:0 0 0.5rem;font-family:Outfit,sans-serif">Berhasil!</h1>';
+sc+='<p style="color:'+T.mu+';font-size:0.95rem;line-height:1.6;white-space:pre-wrap">'+(CF.branding.successMsg||'Data Anda telah berhasil dikirim.')+'</p>';
+if(CF.branding.redirectUrl){
+sc+='<p style="color:'+T.mu+';font-size:0.8rem;margin-top:1.5rem">Anda akan dialihkan dalam 3 detik...</p>';
+}
+sc+='</div>';
+document.getElementById('app').innerHTML=sc+'<div style="text-align:center;padding-bottom:4rem"><a href="https://nerdstudio.online" style="color:'+T.mu+';font-size:0.7rem;text-decoration:none">Powered by Nerd Studio Form Constructor</a></div>';
+document.getElementById('app').style.display='block';
+if(CF.branding.redirectUrl){
+setTimeout(function(){window.location.href=CF.branding.redirectUrl},3000);
+}
+},1000);
 
 return false;
 }
