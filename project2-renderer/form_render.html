@@ -233,7 +233,7 @@ document.getElementById('app').style.display='block';
 if(CF.branding.redirectUrl){
 var ru=CF.branding.redirectUrl;
 if(!/^https?:\/\//i.test(ru))ru='https://'+ru;
-setTimeout(function(){window.location.href=ru},3000);
+setTimeout(function(){window.top.location.href=ru},3000);
 }
 },1000);
 
