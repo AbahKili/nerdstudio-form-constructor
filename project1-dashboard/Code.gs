@@ -61,7 +61,15 @@ function generateLiveSaaSLink(configObj) {
 
 // ═══ ADMIN — LINKED SHEET, STATS, AUTO-CLOSE ══════════════════
 
-function extractId(url) { var m = url.match(/\/d\/([^/]+)/); return m ? m[1] : null; }
+function extractId(url) {
+  // Match /d/FORM_ID or /d/e/FORM_ID (viewform format)
+  var m = url.match(/\/d\/(?:e\/)?([^/]+)/);
+  if (!m) return null;
+  var id = m[1];
+  // Skip the literal 'e' (viewform prefix)
+  if (id === 'e') return null;
+  return id;
+}
 
 // Normalize any Google Form URL to edit URL format
 function toEditUrl(url) {
