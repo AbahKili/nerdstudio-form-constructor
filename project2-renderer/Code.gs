@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:25 WIB — iframe-only submit (CSP blocks fetch), form status check removed
+// ⏱ 2026-06-15 15:30 WIB — iframe-only submit, form status check removed
 /**
  * PROJECT 2: NERD STUDIO FORM PORTAL RENDERER
  * ============================================
