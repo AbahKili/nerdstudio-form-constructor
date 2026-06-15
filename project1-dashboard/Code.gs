@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 23:08 WIB — trash check with DriveApp.isTrashed()
+// ⏱ 2026-06-16 00:14 WIB — Sheet1 renamed to DO NOT CHANGE across all functions
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
@@ -35,9 +35,9 @@ function autoCreateGoogleForm(formData) {
     try {
       var ss = SpreadsheetApp.create((formData.title || 'Form') + ' — Responses');
       form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
-      try { ss.insertSheet("Sheet1"); } catch(e2) {}
+      try { ss.insertSheet("DO NOT CHANGE"); } catch(e2) {}
       try { DriveApp.getFileById(ss.getId()).setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW); } catch(e3) {}
-      try { ss.insertSheet("Sheet1"); } catch(e2) {}
+      try { ss.insertSheet("DO NOT CHANGE"); } catch(e2) {}
           } catch(e) {}
     (formData.fields || []).forEach(function(f) {
       var item = f.type === 'paragraph' ? form.addParagraphTextItem() : form.addTextItem();
@@ -82,7 +82,7 @@ function generateLiveSaaSLink(configObj) {
       var destId2 = f2.getDestinationId();
       if (destId2) {
         var ss2 = SpreadsheetApp.openById(destId2);
-        var sheet2 = ss2.getSheetByName("Sheet1") || ss2.insertSheet("Sheet1");
+        var sheet2 = ss2.getSheetByName("DO NOT CHANGE") || ss2.insertSheet("DO NOT CHANGE");
         sheet2.getRange("A1").setValue(liveUrl);
       }
     }
@@ -111,7 +111,7 @@ function toggleAccepting(formUrl, accepting) {
       var did = f.getDestinationId();
       if (did) {
         var ss = SpreadsheetApp.openById(did);
-        var sheet = ss.getSheetByName("Sheet1");
+        var sheet = ss.getSheetByName("DO NOT CHANGE");
         if (sheet) sheet.getRange("A2").setValue(accepting ? "OPEN" : "CLOSED");
       }
     } catch(e2) {}
@@ -143,6 +143,15 @@ function saveFormToList(formUrl, title) {
   props.setProperty('form_list', JSON.stringify(list));
   return { success: true, list: list };
 }
+function deleteFormFromList(formUrl) {
+  var props = PropertiesService.getUserProperties();
+  var list = JSON.parse(props.getProperty('form_list') || '[]');
+  var id = extractId(formUrl);
+  list = list.filter(function(f) { return f.id !== id; });
+  props.setProperty('form_list', JSON.stringify(list));
+  return { success: true };
+}
+
 
 function getFormClosedStatus(formUrl) {
   var id = extractId(formUrl);
@@ -185,7 +194,7 @@ function writeLiveLinkToSheet(formUrl, liveUrl) {
     var destId = form.getDestinationId();
     if (destId) {
       var ss = SpreadsheetApp.openById(destId);
-      var sheet = ss.getSheetByName("Sheet1") || ss.insertSheet("Sheet1");
+      var sheet = ss.getSheetByName("DO NOT CHANGE") || ss.insertSheet("DO NOT CHANGE");
       sheet.getRange("A1").setValue(liveUrl);
       return { success: true };
     }
@@ -198,7 +207,7 @@ function readLiveLinkFromSheet(formUrl) {
     var destId = form.getDestinationId();
     if (destId) {
       var ss = SpreadsheetApp.openById(destId);
-      var sheet = ss.getSheetByName("Sheet1");
+      var sheet = ss.getSheetByName("DO NOT CHANGE");
       if (sheet) {
         var val = sheet.getRange("A1").getValue();
         if (val && String(val).indexOf("http") === 0) return { success: true, liveUrl: String(val) };

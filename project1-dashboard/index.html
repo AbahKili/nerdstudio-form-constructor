@@ -314,6 +314,7 @@ function loadAdmin(){
       '<div class="flex flex-wrap gap-2">'+
         (s.sheetUrl?'<a href="'+s.sheetUrl+'" target="_blank" class="inline-flex items-center gap-1 text-sm bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium border border-emerald-200 hover:bg-emerald-100"><i class="fa-solid fa-table"></i> Google Sheet</a>':'')+
         '<a href="#" onclick="openLiveLink2(\''+url+'\');return false" class="inline-flex items-center gap-1 text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-globe"></i> Buka Live Link</a>'+
+        '<a href="#" onclick="unlinkForm(\''+url+'\');return false" class="inline-flex items-center gap-1 text-sm bg-red-50 text-red-400 px-4 py-2 rounded-xl font-medium border border-red-200 hover:bg-red-100"><i class="fa-solid fa-trash"></i> Hapus</a>'+
       '</div>'+
       '<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">'+
         '<h3 class="font-bold text-sm mb-3"><i class="fa-solid fa-clock text-blue-500"></i> Auto-Close</h3>'+
@@ -347,6 +348,11 @@ function bukaLiveForm(){
   switchTab('admin');
 }
 
+function unlinkForm(url){
+  Swal.fire({title:'Hapus dari list?',text:'Form + Sheet TIDAK dihapus dari Drive. Hanya dari daftar ini.',icon:'warning',showCancelButton:true,confirmButtonText:'Ya, hapus',cancelButtonText:'Batal'}).then(function(r){
+    if(r.isConfirmed){google.script.run.withSuccessHandler(function(){loadFormList2();document.getElementById('adminContent').classList.add('hidden');}).deleteFormFromList(url);}
+  });
+}
 function openLiveLink2(url){
   google.script.run.withSuccessHandler(function(r){
     if(r.success&&r.liveUrl)window.open(r.liveUrl,'_blank');
