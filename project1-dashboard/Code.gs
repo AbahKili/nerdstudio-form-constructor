@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:30 WIB — RENDERER_URL AKfycbzAYbwXxHRV, auto-close UI, single-page
+// ⏱ 2026-06-15 15:46 WIB — Kelola Form: saved form dropdown, auto-close, sheet link, generate live link
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
@@ -92,6 +92,26 @@ function saveAutoClose(formUrl, config) {
 function getAutoCloseConfig(formUrl) {
   var raw = PropertiesService.getUserProperties().getProperty('ac_' + extractId(formUrl));
   return { success: true, config: raw ? JSON.parse(raw) : null };
+}
+
+function saveFormToList(formUrl, title) {
+  var props = PropertiesService.getUserProperties();
+  var list = JSON.parse(props.getProperty('form_list') || '[]');
+  var id = extractId(formUrl);
+  if (!title || !title.trim()) {
+    try { title = FormApp.openByUrl(toEditUrl(formUrl)).getTitle(); } catch(e) {}
+  }
+  if (!title || !title.trim()) title = 'Form ' + (id ? id.substring(0, 8) : 'Baru');
+  list = list.filter(function(f) { return f.id !== id; });
+  list.unshift({ id: id, url: formUrl, title: title, savedAt: new Date().toISOString() });
+  if (list.length > 20) list = list.slice(0, 20);
+  props.setProperty('form_list', JSON.stringify(list));
+  return { success: true, list: list };
+}
+
+function getFormList() {
+  var list = JSON.parse(PropertiesService.getUserProperties().getProperty('form_list') || '[]');
+  return { success: true, list: list };
 }
 
 function getResponseTable(formUrl, limit) {

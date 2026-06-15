@@ -51,6 +51,7 @@ body.dark #topSub{color:#94a3b8!important}
     <div class="flex border-b border-slate-200 bg-slate-50">
       <button onclick="switchTab('existing')" id="tab-existing" class="flex-1 py-4 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Hubungkan Form</button>
       <button onclick="switchTab('new')" id="tab-new" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent">Buat Baru</button>
+      <button onclick="switchTab('admin')" id="tab-admin" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent">Kelola Form</button>
     </div>
     <div class="p-6">
 
@@ -88,6 +89,18 @@ body.dark #topSub{color:#94a3b8!important}
           </button>
         </div>
       </div>
+
+      <!-- MODE: Kelola Form -->
+      <div id="mode-admin" class="hidden space-y-4">
+        <p class="text-xs text-slate-500">Pilih form yang sudah dibuat, atau masukkan URL baru.</p>
+        <div class="flex gap-3 items-end">
+          <div class="flex-1"><label class="text-xs font-medium">Form Tersimpan</label><select id="adminFormSelect" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="onAdminSelect()"><option value="">-- Pilih form --</option></select></div>
+          <span class="text-xs text-slate-400 pb-2">atau</span>
+          <div class="flex-1 flex gap-2"><input type="url" id="adminFormUrl" placeholder="URL form baru..." class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><button onclick="loadAdmin()" id="btnAdmin" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 whitespace-nowrap"><span id="txtAdmin">Muat</span><div id="loadAdmin" class="loader hidden" style="border-color:rgba(255,255,255,0.2);border-left-color:#fff"></div></button></div>
+        </div>
+        <div id="adminContent" class="hidden space-y-4 mt-4"></div>
+      </div>
+
     </div>
   </div>
 
@@ -157,11 +170,21 @@ var currentActionUrl="",currentFormUrl="";
 var TOTAL_PAGES=2,REGION_LEVEL="kabkota";
 
 function switchTab(m){
-  ['existing','new'].forEach(function(t){
+  ['existing','new','admin'].forEach(function(t){
     document.getElementById('mode-'+t).classList.toggle('hidden',t!==m);
     document.getElementById('tab-'+t).className='flex-1 py-4 text-sm font-bold '+(t===m?'text-blue-600 border-b-2 border-blue-600':'text-slate-500 border-b-2 border-transparent')+' transition-all';
   });
+  if(m==='admin'){document.getElementById('step2').classList.add('hidden');loadFormList2();}
 }
+
+function loadFormList2(){
+  google.script.run.withSuccessHandler(function(r){
+    if(!r.success)return;var sel=document.getElementById('adminFormSelect');
+    sel.innerHTML='<option value="">-- Pilih form ('+r.list.length+') --</option>';
+    r.list.forEach(function(f){sel.innerHTML+='<option value="'+f.url+'">'+f.title+'</option>';});
+  }).getFormList();
+}
+function onAdminSelect(){var url=document.getElementById('adminFormSelect').value;if(url){document.getElementById('adminFormUrl').value=url;loadAdmin();}}
 
 function onRegionChange(){REGION_LEVEL=document.getElementById('regionLevelSelect').value;updatePageSections();}
 function onPageCountChange(){TOTAL_PAGES=parseInt(document.getElementById('pageCountSelect').value);updatePageSections();}
@@ -195,6 +218,7 @@ function createFormOnDrive(){
     Swal.fire({icon:'success',title:'Berhasil!',text:'Form dibuat. Menganalisis...',timer:1500,showConfirmButton:false});
     document.getElementById('formUrl').value=res.url;currentFormUrl=res.editUrl||res.url;
     document.getElementById('b_title').value=document.getElementById('newFormTitle').value;
+    google.script.run.saveFormToList(res.editUrl||res.url,document.getElementById('newFormTitle').value);
     parseForm(res.url);
   }).autoCreateGoogleForm({title:document.getElementById('newFormTitle').value,fields:fields});
 }
@@ -265,6 +289,45 @@ function compileStatelessForm(){
 
 function copyLink(){var i=document.getElementById('liveUrlLink');i.select();document.execCommand("copy");Swal.fire({icon:'success',title:'Link Disalin!',toast:true,position:'top-end',timer:1500,showConfirmButton:false});}
 document.getElementById('acMode').addEventListener('change',function(){var m=this.value;document.getElementById('acTimeWrap').classList.toggle('hidden',m!=='time');document.getElementById('acCountWrap').classList.toggle('hidden',m!=='count');});
+
+// ═══ ADMIN TAB ═══
+function loadAdmin(){
+  var url=document.getElementById('adminFormUrl').value;
+  if(!url||!url.includes('docs.google.com/forms'))return Swal.fire('Error','Link tidak valid.','error');
+  document.getElementById('txtAdmin').innerText="Memuat...";document.getElementById('loadAdmin').classList.remove('hidden');
+  document.getElementById('btnAdmin').disabled=true;
+  google.script.run.withSuccessHandler(function(s){
+    document.getElementById('txtAdmin').innerText="Muat";document.getElementById('loadAdmin').classList.add('hidden');
+    document.getElementById('btnAdmin').disabled=false;
+    if(!s.success)return Swal.fire('Error',s.message,'error');
+    var c=document.getElementById('adminContent');c.classList.remove('hidden');
+    var accBg=s.accepting?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700';
+    var accTxt=s.accepting?'<i class="fa-solid fa-circle-check"></i> Terbuka':'<i class="fa-solid fa-circle-xmark"></i> Tertutup';
+    c.innerHTML='<div class="grid grid-cols-3 gap-3">'+
+      '<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-2xl font-bold text-blue-600">'+s.total+'</div><div class="text-xs text-slate-500">Response</div></div>'+
+      '<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-sm font-bold '+accBg+' rounded-full px-3 py-1 inline-block">'+accTxt+'</div></div>'+
+      '<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">'+
+        '<button onclick="toggleForm2(\''+url+'\','+s.accepting+')" class="w-full text-sm font-bold px-3 py-2 rounded-lg '+(s.accepting?'bg-red-50 text-red-600 hover:bg-red-100':'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')+'">'+(s.accepting?'<i class="fa-solid fa-lock mr-1"></i>Tutup':'<i class="fa-solid fa-lock-open mr-1"></i>Buka')+'</button>'+
+      '</div></div>'+
+      '<div class="flex flex-wrap gap-2">'+
+        (s.sheetUrl?'<a href="'+s.sheetUrl+'" target="_blank" class="inline-flex items-center gap-1 text-sm bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium border border-emerald-200 hover:bg-emerald-100"><i class="fa-solid fa-table"></i> Google Sheet</a>':'')+
+        '<a href="#" onclick="genLiveLink(\''+url+'\');return false" class="inline-flex items-center gap-1 text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-link"></i> Generate Live Link</a>'+
+      '</div>'+
+      '<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">'+
+        '<h3 class="font-bold text-sm mb-3"><i class="fa-solid fa-clock text-blue-500"></i> Auto-Close</h3>'+
+        '<div class="flex flex-wrap items-end gap-3">'+
+          '<div><label class="text-xs">Mode</label><select id="acm" class="border rounded px-2 py-1.5 text-xs" onchange="acmch()"><option value="off">Nonaktif</option><option value="time">Waktu</option><option value="count">Jumlah</option></select></div>'+
+          '<div id="acmtw" class="hidden"><label class="text-xs">Tutup pada</label><input type="datetime-local" id="acmt" class="border rounded px-2 py-1.5 text-xs"></div>'+
+          '<div id="acmcw" class="hidden"><label class="text-xs">Max</label><input type="number" id="acmc" value="100" min="1" class="border rounded px-2 py-1.5 text-xs w-20"></div>'+
+          '<button onclick="saveAC2(\''+url+'\')" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-lg"><i class="fa-solid fa-floppy-disk mr-1"></i>Simpan</button>'+
+        '</div><p id="acst2" class="text-xs text-slate-400 mt-2"></p></div>';
+    google.script.run.withSuccessHandler(function(r){if(r.success&&r.config){var cfg=r.config;document.getElementById('acm').value=cfg.mode||'off';if(cfg.closeAt)document.getElementById('acmt').value=cfg.closeAt;if(cfg.maxSub)document.getElementById('acmc').value=cfg.maxSub;acmch();if(cfg.mode!=='off')document.getElementById('acst2').innerText='Tersimpan: '+cfg.mode;}}).getAutoCloseConfig(url);
+  }).getFullStats(url);
+}
+function toggleForm2(url,current){google.script.run.withSuccessHandler(function(r){if(r.success)loadAdmin();}).toggleAccepting(url,!current);}
+function saveAC2(url){var m=document.getElementById('acm').value,c={mode:m};if(m==='time')c.closeAt=document.getElementById('acmt').value;if(m==='count')c.maxSub=parseInt(document.getElementById('acmc').value)||100;google.script.run.withSuccessHandler(function(r){document.getElementById('acst2').innerText='✅ Tersimpan.';Swal.fire({icon:'success',title:'Tersimpan!',timer:1500,showConfirmButton:false});}).saveAutoClose(url,c);}
+function acmch(){var m=document.getElementById('acm').value;document.getElementById('acmtw').classList.toggle('hidden',m!=='time');document.getElementById('acmcw').classList.toggle('hidden',m!=='count');}
+function genLiveLink(url){document.getElementById('formUrl').value=url;switchTab('existing');parseForm();}
 </script>
 </body>
 </html>
