@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:52 WIB — form closed check via UrlFetch, closed page if form not accepting
+// ⏱ 2026-06-15 15:59 WIB — closed check: reads Sheet cell A1 (OPEN/CLOSED), not UrlFetch
 /**
  * PROJECT 2: NERD STUDIO FORM PORTAL RENDERER
  * ============================================
@@ -41,18 +41,14 @@ function doGet(e) {
     if (!configObj.regions) configObj.regions = {};
     if (!configObj.fields) configObj.fields = [];
 
-    // Check if form is closed
+    // Check if form is closed via Sheet
     var isClosed = false;
-    try {
-      var checkUrl = (configObj.formActionUrl || '').replace(/\/formResponse.*/, '/viewform');
-      if (checkUrl) {
-        var html = UrlFetchApp.fetch(checkUrl, { muteHttpExceptions: true, followRedirects: false }).getContentText();
-        if (html && (html.indexOf('no longer accepting responses') > -1 || html.indexOf('tidak menerima respons lagi') > -1)) {
-          isClosed = true;
-        }
-      }
-    } catch(e) {
-      // Network error — assume open (don't block users)
+    if (configObj._sheetId) {
+      try {
+        var ss = SpreadsheetApp.openById(configObj._sheetId);
+        var status = ss.getRange('A1').getValue();
+        if (status === 'CLOSED') isClosed = true;
+      } catch(e) {}
     }
 
     if (isClosed) {

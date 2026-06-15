@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:52 WIB — Kelola Form: dropdown, auto-close with status save, open live link
+// ⏱ 2026-06-15 15:59 WIB — closed status via Sheet cell A1, renderer reads Sheet not UrlFetch
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
@@ -33,6 +33,7 @@ function autoCreateGoogleForm(formData) {
     try {
       var ss = SpreadsheetApp.create((formData.title || 'Form') + ' — Responses');
       form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+      try { ss.getRange('A1').setValue('OPEN'); } catch(e2) {}
     } catch(e) {}
     (formData.fields || []).forEach(function(f) {
       var item = f.type === 'paragraph' ? form.addParagraphTextItem() : form.addTextItem();
@@ -60,6 +61,14 @@ function parseGoogleForm(formUrl) {
 
 function generateLiveSaaSLink(configObj) {
   try {
+    // Include Sheet ID for closed-status check
+    if (configObj.formActionUrl) {
+      try {
+        var gf = FormApp.openByUrl(toEditUrl(configObj.formActionUrl));
+        var did = gf.getDestinationId();
+        if (did) configObj._sheetId = did;
+      } catch(e) {}
+    }
     var token = Utilities.base64EncodeWebSafe(JSON.stringify(configObj));
     return { success: true, liveUrl: RENDERER_URL + "?f=" + token, token: token };
   } catch (err) { return { success: false, message: err.toString() }; }
@@ -79,8 +88,16 @@ function getFullStats(formUrl) {
 
 function toggleAccepting(formUrl, accepting) {
   try {
-    FormApp.openByUrl(toEditUrl(formUrl)).setAcceptingResponses(accepting);
-    PropertiesService.getUserProperties().setProperty('form_status_' + extractId(formUrl), accepting ? 'open' : 'closed');
+    var f = FormApp.openByUrl(toEditUrl(formUrl));
+    f.setAcceptingResponses(accepting);
+    // Write status to linked Sheet so renderer can check
+    try {
+      var did = f.getDestinationId();
+      if (did) {
+        var ss = SpreadsheetApp.openById(did);
+        ss.getRange('A1').setValue(accepting ? 'OPEN' : 'CLOSED');
+      }
+    } catch(e2) {}
     return { success: true, accepting: accepting };
   } catch(e) { return { success: false, message: e.toString() }; }
 }
