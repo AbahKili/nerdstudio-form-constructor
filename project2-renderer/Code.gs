@@ -55,7 +55,7 @@ function doGet(e) {
         '<div style="font-size:4rem;margin-bottom:1rem;">🔒</div>' +
         '<h1>'+ct+'</h1><p style="color:#94a3b8;font-size:1rem;">Form sudah ditutup dan tidak menerima respons baru.</p>' +
         '<p style="color:#64748b;font-size:.8rem;margin-top:2rem;">— Nerd Studio Form Constructor</p></div></body></html>'
-      );
+      ).setTitle(ct);
     }
 
     // Inject data wilayah hardcode
