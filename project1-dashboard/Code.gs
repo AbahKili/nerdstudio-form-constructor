@@ -1,10 +1,12 @@
-// ⏱ 2026-06-15 22:07 WIB — fixed: use _formEditUrl (real form ID) not published ID for Sheet write
+// ⏱ 2026-06-15 23:08 WIB — trash check with DriveApp.isTrashed()
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
  */
 
-var RENDERER_URL = "https://script.google.com/macros/s/AKfycbzAYbwXxHRV_GCoXxP7HQ_QmayOEZxP3vqLiOFyx7sSE_NBNrQwxkVAoEb9xX0UjhKz/exec";
+var RENDERER_URL = "https://script.google.com/macros/s/AKfycbwAkLxsQlK-mDyNq3EwDtvlknvDdDuL-4ax_oXbmb-w6FwEe8NvjXyC5J8_Ofrx-_Uc/exec";
+
+function forceAuthDrive() { DriveApp.getRootFolder(); }
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -33,6 +35,8 @@ function autoCreateGoogleForm(formData) {
     try {
       var ss = SpreadsheetApp.create((formData.title || 'Form') + ' — Responses');
       form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+      try { ss.insertSheet("Sheet1"); } catch(e2) {}
+      try { DriveApp.getFileById(ss.getId()).setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW); } catch(e3) {}
       try { ss.insertSheet("Sheet1"); } catch(e2) {}
           } catch(e) {}
     (formData.fields || []).forEach(function(f) {
@@ -102,6 +106,15 @@ function toggleAccepting(formUrl, accepting) {
   try {
     var f = FormApp.openByUrl(toEditUrl(formUrl));
     f.setAcceptingResponses(accepting);
+    // Write status to Sheet1!A2 so renderer can check
+    try {
+      var did = f.getDestinationId();
+      if (did) {
+        var ss = SpreadsheetApp.openById(did);
+        var sheet = ss.getSheetByName("Sheet1");
+        if (sheet) sheet.getRange("A2").setValue(accepting ? "OPEN" : "CLOSED");
+      }
+    } catch(e2) {}
     return { success: true, accepting: accepting };
   } catch(e) { return { success: false, message: e.toString() }; }
 }
@@ -144,7 +157,21 @@ function getFormClosedStatus(formUrl) {
 
 function getFormList() {
   var list = JSON.parse(PropertiesService.getUserProperties().getProperty('form_list') || '[]');
-  return { success: true, list: list };
+  // Filter out deleted/trashed forms
+  var cleaned = [];
+  for (var i = 0; i < list.length; i++) {
+    try {
+      var f = FormApp.openByUrl(toEditUrl(list[i].url));
+      // Check if file is trashed
+      var isTrashed = false;
+      try { isTrashed = DriveApp.getFileById(f.getId()).isTrashed(); } catch(e2) {}
+      if (!isTrashed) cleaned.push(list[i]);
+    } catch(e) {}
+  }
+  if (cleaned.length < list.length) {
+    PropertiesService.getUserProperties().setProperty('form_list', JSON.stringify(cleaned));
+  }
+  return { success: true, list: cleaned };
 }
 
 function saveFormLiveLink(formUrl, liveUrl) {
