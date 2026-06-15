@@ -1,4 +1,4 @@
-// ⏱ 2026-06-16T00:15WIB — RENDERER_URL to AKfycbzAYbwXxHRV, auto-close in Step 2, single-page
+// ⏱ 2026-06-15 15:25 WIB — RENDERER_URL AKfycbzAYbwXxHRV, auto-close UI, single-page, submit fix
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
