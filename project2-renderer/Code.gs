@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:30 WIB — iframe-only submit, form status check removed
+// ⏱ 2026-06-15 15:52 WIB — form closed check via UrlFetch, closed page if form not accepting
 /**
  * PROJECT 2: NERD STUDIO FORM PORTAL RENDERER
  * ============================================
@@ -40,6 +40,32 @@ function doGet(e) {
     if (!configObj.branding) configObj.branding = {};
     if (!configObj.regions) configObj.regions = {};
     if (!configObj.fields) configObj.fields = [];
+
+    // Check if form is closed
+    var isClosed = false;
+    try {
+      var checkUrl = (configObj.formActionUrl || '').replace(/\/formResponse.*/, '/viewform');
+      if (checkUrl) {
+        var html = UrlFetchApp.fetch(checkUrl, { muteHttpExceptions: true, followRedirects: false }).getContentText();
+        if (html && (html.indexOf('no longer accepting responses') > -1 || html.indexOf('tidak menerima respons lagi') > -1)) {
+          isClosed = true;
+        }
+      }
+    } catch(e) {
+      // Network error — assume open (don't block users)
+    }
+
+    if (isClosed) {
+      var ct = configObj.branding.title || 'Form';
+      return HtmlService.createHtmlOutput(
+        '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ct+'</title>' +
+        '<style>body{background:#020617;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:2rem;text-align:center}' +
+        'h1{font-size:1.8rem;margin:0 0 .5rem}</style></head><body><div>' +
+        '<div style="font-size:4rem;margin-bottom:1rem;">🔒</div>' +
+        '<h1>'+ct+'</h1><p style="color:#94a3b8;font-size:1rem;">Form sudah ditutup dan tidak menerima respons baru.</p>' +
+        '<p style="color:#64748b;font-size:.8rem;margin-top:2rem;">— Nerd Studio Form Constructor</p></div></body></html>'
+      );
+    }
 
     // Inject data wilayah hardcode
     var template = HtmlService.createTemplateFromFile('form_render');

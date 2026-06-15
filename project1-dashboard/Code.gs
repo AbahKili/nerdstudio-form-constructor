@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:46 WIB — Kelola Form: saved form dropdown, auto-close, sheet link, generate live link
+// ⏱ 2026-06-15 15:52 WIB — Kelola Form: dropdown, auto-close with status save, open live link
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
@@ -80,6 +80,7 @@ function getFullStats(formUrl) {
 function toggleAccepting(formUrl, accepting) {
   try {
     FormApp.openByUrl(toEditUrl(formUrl)).setAcceptingResponses(accepting);
+    PropertiesService.getUserProperties().setProperty('form_status_' + extractId(formUrl), accepting ? 'open' : 'closed');
     return { success: true, accepting: accepting };
   } catch(e) { return { success: false, message: e.toString() }; }
 }
@@ -107,6 +108,17 @@ function saveFormToList(formUrl, title) {
   if (list.length > 20) list = list.slice(0, 20);
   props.setProperty('form_list', JSON.stringify(list));
   return { success: true, list: list };
+}
+
+function getFormClosedStatus(formUrl) {
+  var id = extractId(formUrl);
+  if (!id) return { success: false };
+  // Check UserProperties first
+  var status = PropertiesService.getUserProperties().getProperty('form_status_' + id);
+  if (status === 'closed') return { success: true, closed: true };
+  // Also check the form itself
+  try { return { success: true, closed: !FormApp.openByUrl(toEditUrl(formUrl)).isAcceptingResponses() }; } catch(e) {}
+  return { success: true, closed: false };
 }
 
 function getFormList() {

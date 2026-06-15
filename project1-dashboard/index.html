@@ -311,7 +311,7 @@ function loadAdmin(){
       '</div></div>'+
       '<div class="flex flex-wrap gap-2">'+
         (s.sheetUrl?'<a href="'+s.sheetUrl+'" target="_blank" class="inline-flex items-center gap-1 text-sm bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium border border-emerald-200 hover:bg-emerald-100"><i class="fa-solid fa-table"></i> Google Sheet</a>':'')+
-        '<a href="#" onclick="genLiveLink(\''+url+'\');return false" class="inline-flex items-center gap-1 text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-link"></i> Generate Live Link</a>'+
+        '<a href="#" onclick="openLiveLink2(\''+url+'\');return false" class="inline-flex items-center gap-1 text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-globe"></i> Buka Live Link</a>'+
       '</div>'+
       '<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">'+
         '<h3 class="font-bold text-sm mb-3"><i class="fa-solid fa-clock text-blue-500"></i> Auto-Close</h3>'+
@@ -327,7 +327,7 @@ function loadAdmin(){
 function toggleForm2(url,current){google.script.run.withSuccessHandler(function(r){if(r.success)loadAdmin();}).toggleAccepting(url,!current);}
 function saveAC2(url){var m=document.getElementById('acm').value,c={mode:m};if(m==='time')c.closeAt=document.getElementById('acmt').value;if(m==='count')c.maxSub=parseInt(document.getElementById('acmc').value)||100;google.script.run.withSuccessHandler(function(r){document.getElementById('acst2').innerText='✅ Tersimpan.';Swal.fire({icon:'success',title:'Tersimpan!',timer:1500,showConfirmButton:false});}).saveAutoClose(url,c);}
 function acmch(){var m=document.getElementById('acm').value;document.getElementById('acmtw').classList.toggle('hidden',m!=='time');document.getElementById('acmcw').classList.toggle('hidden',m!=='count');}
-function genLiveLink(url){document.getElementById('formUrl').value=url;switchTab('existing');parseForm();}
+function openLiveLink2(url){google.script.run.withSuccessHandler(function(r){if(r.success&&r.liveUrl)window.open(r.liveUrl,'_blank');else Swal.fire('Info','Belum ada live link. Generate dulu dari tab Hubungkan Form.','info');}).getFormLiveLink(url);}
 </script>
 </body>
 </html>
