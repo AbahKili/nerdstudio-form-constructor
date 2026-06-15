@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 16:01 WIB — closed check: _closed from token config, no Sheet no UrlFetch
+// ⏱ 2026-06-15 22:56 WIB — forceAuth + forms scope fix
 /**
  * PROJECT 2: NERD STUDIO FORM PORTAL RENDERER
  * ============================================
@@ -41,8 +41,12 @@ function doGet(e) {
     if (!configObj.regions) configObj.regions = {};
     if (!configObj.fields) configObj.fields = [];
 
-    // Check if form is closed (embedded in token at generation time)
-    if (configObj._closed) {
+    // Check if form is closed via FormApp (same user = no permission issue)
+    var isClosed = false;
+    if (configObj._formEditUrl) {
+      isClosed = !FormApp.openByUrl(configObj._formEditUrl).isAcceptingResponses();
+    }
+    if (isClosed) {
       var ct = configObj.branding.title || 'Form';
       return HtmlService.createHtmlOutput(
         '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ct+'</title>' +
@@ -77,6 +81,9 @@ function doGet(e) {
   }
 }
 
+
+// Force OAuth scope detection — run this once from editor to trigger Forms permission
+function forceAuth() { FormApp.getActiveForm(); }
 
 // ── Test Endpoint (debugging) ──────────────────────────────────────
 function testRender() {
