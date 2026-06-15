@@ -104,6 +104,14 @@ body.dark #topSub{color:#94a3b8!important}
         <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Link Redirect (Opsional)</label><input type="url" id="b_redirect" placeholder="contoh: detik.com" class="w-full border rounded-lg px-3 py-2"></div>
         <div><label class="block text-sm font-medium mb-1">Tema Warna</label><select id="b_theme" class="w-full border rounded-lg px-3 py-2 bg-white"><option value="dark">Cyber Dark</option><option value="light">Minimalist Light</option><option value="corporate">Corporate Blue</option></select></div>
         <div><label class="block text-sm font-medium mb-1">URL Logo</label><input type="url" id="b_logo" placeholder="https://situs.com/logo.png" class="w-full border rounded-lg px-3 py-2"></div>
+        <div class="md:col-span-2 border-t pt-4 mt-2">
+          <label class="block text-sm font-medium mb-2"><i class="fa-solid fa-clock text-blue-500"></i> Auto-Close (Opsional)</label>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="text-xs">Mode</label><select id="acMode" class="w-full border rounded-lg px-2 py-1.5 text-xs"><option value="off">Nonaktif</option><option value="time">Waktu</option><option value="count">Jumlah</option></select></div>
+            <div id="acTimeWrap" class="hidden"><label class="text-xs">Tutup pada</label><input type="datetime-local" id="acTime" class="w-full border rounded-lg px-2 py-1.5 text-xs"></div>
+            <div id="acCountWrap" class="hidden"><label class="text-xs">Max submission</label><input type="number" id="acCount" value="100" min="1" class="w-full border rounded-lg px-2 py-1.5 text-xs"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -138,14 +146,6 @@ body.dark #topSub{color:#94a3b8!important}
       <a id="lnkTest" href="#" target="_blank" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-center py-2.5 rounded-xl text-sm">Buka Live Form</a>
       <button onclick="document.getElementById('modalOut').classList.add('hidden')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 rounded-xl text-sm border">Tutup</button>
     </div>
-    <!-- Form Status Toggle -->
-    <div id="formStatusPanel" class="pt-3 border-t border-slate-200 text-center">
-      <p class="text-xs text-slate-500 mb-2">Setelah live link aktif, kamu bisa menutup Google Form agar tidak ada response baru.</p>
-      <button onclick="toggleForm()" id="btnToggleForm" class="bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 rounded-xl text-sm font-medium border border-red-200">
-        <i class="fa-solid fa-lock mr-1"></i> Tutup Google Form
-      </button>
-      <p id="formStatusText" class="text-xs text-slate-400 mt-2"></p>
-    </div>
   </div>
 </div>
 
@@ -155,7 +155,6 @@ function toggleTheme(){var b=document.body,icon=document.getElementById('themeIc
 
 var currentActionUrl="",currentFormUrl="";
 var TOTAL_PAGES=2,REGION_LEVEL="kabkota";
-var formAccepting=true;
 
 function switchTab(m){
   ['existing','new'].forEach(function(t){
@@ -193,7 +192,7 @@ function createFormOnDrive(){
   google.script.run.withSuccessHandler(function(res){
     txt.innerText="Buat Form di Drive Saya";load.classList.add('hidden');document.getElementById('btnCreate').disabled=false;
     if(!res.success)return Swal.fire('Error',res.message,'error');
-    Swal.fire({icon:'success',title:'Berhasil!',text:'Menganalisis form...',timer:1500,showConfirmButton:false});
+    Swal.fire({icon:'success',title:'Berhasil!',text:'Form dibuat. Menganalisis...',timer:1500,showConfirmButton:false});
     document.getElementById('formUrl').value=res.url;currentFormUrl=res.editUrl||res.url;
     document.getElementById('b_title').value=document.getElementById('newFormTitle').value;
     parseForm(res.url);
@@ -252,36 +251,20 @@ function compileStatelessForm(){
     btnGen.disabled=false;btnGen.innerText="Generate Live Link";
     if(!res.success)return Swal.fire('Error',res.message,'error');
     document.getElementById('liveUrlLink').value=res.liveUrl;document.getElementById('lnkTest').href=res.liveUrl;
-    // Update toggle button based on current status
-    updateToggleButton();
+    // Save auto-close config
+    var acMode=document.getElementById('acMode').value;
+    if(acMode!=='off'&&currentFormUrl){
+      var ac={mode:acMode};
+      if(acMode==='time')ac.closeAt=document.getElementById('acTime').value;
+      if(acMode==='count')ac.maxSub=parseInt(document.getElementById('acCount').value)||100;
+      google.script.run.saveAutoClose(currentFormUrl,ac);
+    }
     document.getElementById('modalOut').classList.remove('hidden');
   }).generateLiveSaaSLink(config);
 }
 
-function updateToggleButton(){
-  var btn=document.getElementById('btnToggleForm'),txt=document.getElementById('formStatusText');
-  if(formAccepting){
-    btn.innerHTML='<i class="fa-solid fa-lock mr-1"></i> Tutup Google Form';
-    btn.className='bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 rounded-xl text-sm font-medium border border-red-200';
-    txt.innerText='Form saat ini: TERBUKA — menerima response baru';
-  } else {
-    btn.innerHTML='<i class="fa-solid fa-lock-open mr-1"></i> Buka Google Form';
-    btn.className='bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-6 py-2 rounded-xl text-sm font-medium border border-emerald-200';
-    txt.innerText='Form saat ini: TERTUTUP — tidak menerima response';
-  }
-}
-
-function toggleForm(){
-  var newState=!formAccepting;
-  google.script.run.withSuccessHandler(function(r){
-    if(!r.success)return Swal.fire('Error',r.message,'error');
-    formAccepting=r.accepting;
-    updateToggleButton();
-    Swal.fire({icon:'success',title:formAccepting?'Form Dibuka!':'Form Ditutup!',timer:1500,showConfirmButton:false});
-  }).toggleFormStatus(currentFormUrl, newState);
-}
-
 function copyLink(){var i=document.getElementById('liveUrlLink');i.select();document.execCommand("copy");Swal.fire({icon:'success',title:'Link Disalin!',toast:true,position:'top-end',timer:1500,showConfirmButton:false});}
+document.getElementById('acMode').addEventListener('change',function(){var m=this.value;document.getElementById('acTimeWrap').classList.toggle('hidden',m!=='time');document.getElementById('acCountWrap').classList.toggle('hidden',m!=='count');});
 </script>
 </body>
 </html>

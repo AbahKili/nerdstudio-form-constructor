@@ -1,3 +1,4 @@
+// ⏱ 2026-06-16T00:15WIB — fetch removed (CSP blocks in GAS sandbox), iframe-only submit
 /**
  * PROJECT 2: NERD STUDIO FORM PORTAL RENDERER
  * ============================================

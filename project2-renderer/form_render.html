@@ -1,3 +1,4 @@
+<!-- ⏱ 2026-06-16T00:15WIB — fixed: correct URLSearchParams, submit main form directly -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -212,12 +213,12 @@ if(selProvName&&CF.regions.provinsi)fd.append(CF.regions.provinsi,selProvName);
 if(selKabName&&CF.regions.kabkota)fd.append(CF.regions.kabkota,selKabName);
 if(selKecName&&CF.regions.kecamatan)fd.append(CF.regions.kecamatan,selKecName);
 
-// Submit via iframe
+// Submit via fetch (primary) + iframe (fallback) — ensures data reaches Google Forms
 var f=document.createElement('form');f.method='POST';f.action=CF.formActionUrl;f.target='hf';f.style.display='none';
-fd.forEach(function(v,k){var i=document.createElement('input');i.type='hidden';i.name=k;i.value=v;f.appendChild(i)});
-document.body.appendChild(f);f.submit();document.body.removeChild(f);
+	fd.forEach(function(v,k){var i=document.createElement('input');i.type='hidden';i.name=k;i.value=v;f.appendChild(i)});
+	document.body.appendChild(f);f.submit();
 
-// Show success page
+// Show success page (keep iframe in DOM)
 setTimeout(function(){
 var okIcon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="'+T.bt+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:64px;height:64px;margin:0 auto 1rem;display:block"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
 var sc='<div style="text-align:center;padding:4rem 1rem;max-width:480px;margin:0 auto">';

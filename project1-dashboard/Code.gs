@@ -1,10 +1,10 @@
+// ⏱ 2026-06-16T00:15WIB — RENDERER_URL to AKfycbzAYbwXxHRV, auto-close in Step 2, single-page
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
  */
 
-// UPDATE this whenever renderer is redeployed
-var RENDERER_URL = "https://script.google.com/macros/s/AKfycbxUr-3dcJ298LyJzPhta4wI8KbhOxrBDQ_JWCF0WSnbNI5ExeZYsn5tmiuusMADSEbP/exec";
+var RENDERER_URL = "https://script.google.com/macros/s/AKfycbzAYbwXxHRV_GCoXxP7HQ_QmayOEZxP3vqLiOFyx7sSE_NBNrQwxkVAoEb9xX0UjhKz/exec";
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -13,28 +13,29 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
-// ═══ FORM CREATION & PARSING ═══════════════════════════════════
+// ═══ UTILS ═══
+function extractId(url) {
+  var m = url.match(/\/d\/(?:e\/)?([^/]+)/);
+  if (!m || m[1] === 'e') return null;
+  return m[1];
+}
+function toEditUrl(url) {
+  var id = extractId(url) || (url.match(/\/d\/e\/([^/]+)/) || [])[1];
+  return id ? 'https://docs.google.com/forms/d/' + id + '/edit' : url;
+}
 
+// ═══ FORM CREATE & PARSE ═══
 function autoCreateGoogleForm(formData) {
   try {
     var form = FormApp.create(formData.title || 'Form Baru');
     form.setCollectEmail(false);
-    form.setDescription((formData.description || 'Dibuat oleh Nerd Studio Form Constructor') + '\n\n🏗️ Built with Nerd Studio Form Constructor — ' + new Date().toISOString().split('T')[0]);
-    // Auto-link Google Sheet
+    form.setDescription('Dibuat oleh Nerd Studio Form Constructor');
     try {
-      var sheetName = formData.title || form.getTitle() || 'Form Responses';
-      var ss = SpreadsheetApp.create(sheetName + ' — Responses');
+      var ss = SpreadsheetApp.create((formData.title || 'Form') + ' — Responses');
       form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
     } catch(e) {}
     (formData.fields || []).forEach(function(f) {
-      var item;
-      switch (f.type) {
-        case 'paragraph': item = form.addParagraphTextItem(); break;
-        case 'choice': item = form.addMultipleChoiceItem();
-          if (f.options) item.setChoices(f.options.map(function(o) { return item.createChoice(o); }));
-          break;
-        default: item = form.addTextItem();
-      }
+      var item = f.type === 'paragraph' ? form.addParagraphTextItem() : form.addTextItem();
       item.setTitle(f.label).setRequired(f.required !== false);
     });
     return { success: true, url: form.getPublishedUrl(), editUrl: 'https://docs.google.com/forms/d/' + form.getId() + '/edit', id: form.getId() };
@@ -47,15 +48,13 @@ function parseGoogleForm(formUrl) {
     var match = html.match(/FB_PUBLIC_LOAD_DATA_\s*=\s*(\[.*?\]);/s);
     if (!match) throw new Error("Struktur form tidak terbaca.");
     var data = JSON.parse(match[1]);
-    var questions = data[1][1];
-    var formActionUrl = formUrl.replace(/\/viewform.*/, '/formResponse');
     var fields = [];
-    questions.forEach(function(q) {
-      var title = q[1]; var entryId = '';
+    (data[1][1] || []).forEach(function(q) {
+      var entryId = '';
       try { entryId = q[4][0][0]; } catch (e) {}
-      if (entryId && title) fields.push({ label: title, entry: 'entry.' + entryId, type: 'text' });
+      if (entryId && q[1]) fields.push({ label: q[1], entry: 'entry.' + entryId, type: 'text' });
     });
-    return { success: true, formActionUrl: formActionUrl, fields: fields, formId: extractId(formUrl) };
+    return { success: true, formActionUrl: formUrl.replace(/\/viewform.*/, '/formResponse'), fields: fields, formId: extractId(formUrl) };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
@@ -66,30 +65,48 @@ function generateLiveSaaSLink(configObj) {
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
-// ═══ FORM STATUS ══════════════════════════════════════════════
-
-function extractId(url) {
-  var m = url.match(/\/d\/(?:e\/)?([^/]+)/);
-  if (!m || m[1] === 'e') return null;
-  return m[1];
-}
-
-function toEditUrl(url) {
-  var id = extractId(url);
-  if (!id) return url;
-  return 'https://docs.google.com/forms/d/' + id + '/edit';
-}
-
-function getFormStatus(formUrl) {
+// ═══ FORM MANAGER ═══
+function getFullStats(formUrl) {
   try {
     var form = FormApp.openByUrl(toEditUrl(formUrl));
-    return { success: true, accepting: form.isAcceptingResponses(), title: form.getTitle() || '', responseCount: form.getResponses().length };
-  } catch (err) { return { success: false, message: err.toString() }; }
+    var responses = form.getResponses();
+    var sheetUrl = '';
+    try { if (form.getDestinationId()) sheetUrl = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch(e) {}
+    var last = responses.length > 0 ? responses[responses.length - 1].getTimestamp().toISOString() : '';
+    return { success: true, title: form.getTitle() || '', total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl };
+  } catch(e) { return { success: false, message: e.toString() }; }
 }
 
-function toggleFormStatus(formUrl, accepting) {
+function toggleAccepting(formUrl, accepting) {
   try {
     FormApp.openByUrl(toEditUrl(formUrl)).setAcceptingResponses(accepting);
     return { success: true, accepting: accepting };
-  } catch (err) { return { success: false, message: err.toString() }; }
+  } catch(e) { return { success: false, message: e.toString() }; }
+}
+
+function saveAutoClose(formUrl, config) {
+  PropertiesService.getUserProperties().setProperty('ac_' + extractId(formUrl), JSON.stringify(config));
+  return { success: true };
+}
+
+function getAutoCloseConfig(formUrl) {
+  var raw = PropertiesService.getUserProperties().getProperty('ac_' + extractId(formUrl));
+  return { success: true, config: raw ? JSON.parse(raw) : null };
+}
+
+function getResponseTable(formUrl, limit) {
+  try {
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
+    var destId = form.getDestinationId();
+    if (destId) {
+      var ss = SpreadsheetApp.openById(destId);
+      var sheet = ss.getSheets()[0];
+      var data = sheet.getDataRange().getValues();
+      if (data.length > 1) {
+        var rows = data.slice(1).filter(function(r) { return r.some(function(c) { return String(c).trim(); }); });
+        return { success: true, headers: data[0], rows: rows.slice(-Math.min(limit||20, rows.length)), total: rows.length };
+      }
+    }
+    return { success: true, headers: [], rows: [], total: 0 };
+  } catch(e) { return { success: false, message: e.toString() }; }
 }
