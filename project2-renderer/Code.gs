@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:59 WIB — closed check: reads Sheet cell A1 (OPEN/CLOSED), not UrlFetch
+// ⏱ 2026-06-15 16:01 WIB — closed check: _closed from token config, no Sheet no UrlFetch
 /**
  * PROJECT 2: NERD STUDIO FORM PORTAL RENDERER
  * ============================================
@@ -41,17 +41,8 @@ function doGet(e) {
     if (!configObj.regions) configObj.regions = {};
     if (!configObj.fields) configObj.fields = [];
 
-    // Check if form is closed via Sheet
-    var isClosed = false;
-    if (configObj._sheetId) {
-      try {
-        var ss = SpreadsheetApp.openById(configObj._sheetId);
-        var status = ss.getRange('A1').getValue();
-        if (status === 'CLOSED') isClosed = true;
-      } catch(e) {}
-    }
-
-    if (isClosed) {
+    // Check if form is closed (embedded in token at generation time)
+    if (configObj._closed) {
       var ct = configObj.branding.title || 'Form';
       return HtmlService.createHtmlOutput(
         '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ct+'</title>' +

@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 15:59 WIB — closed status via Sheet cell A1, renderer reads Sheet not UrlFetch
+// ⏱ 2026-06-15 16:01 WIB — closed status: _closed flag in token, no cross-user Sheet access
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
@@ -61,12 +61,11 @@ function parseGoogleForm(formUrl) {
 
 function generateLiveSaaSLink(configObj) {
   try {
-    // Include Sheet ID for closed-status check
+    // Check if form is accepting and embed status in token
     if (configObj.formActionUrl) {
       try {
         var gf = FormApp.openByUrl(toEditUrl(configObj.formActionUrl));
-        var did = gf.getDestinationId();
-        if (did) configObj._sheetId = did;
+        configObj._closed = !gf.isAcceptingResponses();
       } catch(e) {}
     }
     var token = Utilities.base64EncodeWebSafe(JSON.stringify(configObj));
@@ -90,14 +89,6 @@ function toggleAccepting(formUrl, accepting) {
   try {
     var f = FormApp.openByUrl(toEditUrl(formUrl));
     f.setAcceptingResponses(accepting);
-    // Write status to linked Sheet so renderer can check
-    try {
-      var did = f.getDestinationId();
-      if (did) {
-        var ss = SpreadsheetApp.openById(did);
-        ss.getRange('A1').setValue(accepting ? 'OPEN' : 'CLOSED');
-      }
-    } catch(e2) {}
     return { success: true, accepting: accepting };
   } catch(e) { return { success: false, message: e.toString() }; }
 }
