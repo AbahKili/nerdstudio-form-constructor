@@ -156,7 +156,7 @@ body.dark #topSub{color:#94a3b8!important}
     <div class="text-center"><div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl mb-3"><i class="fa-solid fa-circle-check"></i></div><h3 class="text-lg font-bold text-slate-900">Portal Sukses Diluncurkan!</h3><p class="text-xs text-slate-500 mt-1">Tautan whitelabel siap digunakan.</p></div>
     <div class="bg-slate-50 p-3 rounded-xl border flex items-center justify-between gap-2"><input type="text" id="liveUrlLink" readonly class="bg-transparent text-xs font-mono text-blue-600 flex-1 overflow-x-auto focus:outline-none select-all"><button onclick="copyLink()" class="bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold">Copy</button></div>
     <div class="pt-2 flex gap-2">
-      <a id="lnkTest" href="#" target="_blank" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-center py-2.5 rounded-xl text-sm">Buka Live Form</a>
+      <button onclick="bukaLiveForm()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-center py-2.5 rounded-xl text-sm">Buka Live Form</button>
       <button onclick="document.getElementById('modalOut').classList.add('hidden')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 rounded-xl text-sm border">Tutup</button>
     </div>
   </div>
@@ -166,7 +166,7 @@ body.dark #topSub{color:#94a3b8!important}
 (function(){var t=localStorage.getItem('ns-theme');if(t==='dark')document.body.classList.add('dark'),document.getElementById('themeIcon').className='fa-solid fa-sun text-lg';})();
 function toggleTheme(){var b=document.body,icon=document.getElementById('themeIcon');b.classList.toggle('dark');var isDark=b.classList.contains('dark');icon.className='fa-solid '+(isDark?'fa-sun':'fa-moon')+' text-lg';localStorage.setItem('ns-theme',isDark?'dark':'light');}
 
-var currentActionUrl="",currentFormUrl="";
+var currentActionUrl="",currentFormUrl="",formEditUrl2="";
 var TOTAL_PAGES=2,REGION_LEVEL="kabkota";
 
 function switchTab(m){
@@ -216,7 +216,7 @@ function createFormOnDrive(){
     txt.innerText="Buat Form di Drive Saya";load.classList.add('hidden');document.getElementById('btnCreate').disabled=false;
     if(!res.success)return Swal.fire('Error',res.message,'error');
     Swal.fire({icon:'success',title:'Berhasil!',text:'Form dibuat. Menganalisis...',timer:1500,showConfirmButton:false});
-    document.getElementById('formUrl').value=res.url;currentFormUrl=res.editUrl||res.url;
+    document.getElementById('formUrl').value=res.url;currentFormUrl=res.editUrl||res.url;formEditUrl2=res.editUrl;
     document.getElementById('b_title').value=document.getElementById('newFormTitle').value;
     google.script.run.saveFormToList(res.editUrl||res.url,document.getElementById('newFormTitle').value);
     parseForm(res.url);
@@ -261,7 +261,7 @@ function moveRow(btn,dir){var r=btn.closest('tr');if(dir==='up'){var p=r.previou
 
 function compileStatelessForm(){
   var btnGen=document.getElementById('btnGen');btnGen.disabled=true;btnGen.innerText="Mengompilasi...";
-  var config={formActionUrl:currentActionUrl,regionLevel:REGION_LEVEL,branding:{title:document.getElementById('b_title').value,subtitle:document.getElementById('b_subtitle').value,successMsg:document.getElementById('b_success').value,redirectUrl:document.getElementById('b_redirect').value,logo:document.getElementById('b_logo').value,themeStyle:document.getElementById('b_theme').value},orderedFields:[],regions:{}};
+  var config={formActionUrl:currentActionUrl,regionLevel:REGION_LEVEL,_formEditUrl:formEditUrl2||currentFormUrl,branding:{title:document.getElementById('b_title').value,subtitle:document.getElementById('b_subtitle').value,successMsg:document.getElementById('b_success').value,redirectUrl:document.getElementById('b_redirect').value,logo:document.getElementById('b_logo').value,themeStyle:document.getElementById('b_theme').value},orderedFields:[],regions:{}};
   document.querySelectorAll('#mappingBody tr').forEach(function(tr){
     var role=tr.querySelector('.role-select').value;if(role==='ignore')return;
     var entry=tr.dataset.entry,label=tr.dataset.label,pageSection=tr.querySelector('.section-select').value;
@@ -274,7 +274,9 @@ function compileStatelessForm(){
   google.script.run.withSuccessHandler(function(res){
     btnGen.disabled=false;btnGen.innerText="Generate Live Link";
     if(!res.success)return Swal.fire('Error',res.message,'error');
-    document.getElementById('liveUrlLink').value=res.liveUrl;document.getElementById('lnkTest').href=res.liveUrl;
+    document.getElementById('liveUrlLink').value=res.liveUrl;
+    // Store for bukaLiveForm()
+    window.__lastLiveUrl=res.liveUrl;
     // Save auto-close config
     var acMode=document.getElementById('acMode').value;
     if(acMode!=='off'&&currentFormUrl){
@@ -327,7 +329,30 @@ function loadAdmin(){
 function toggleForm2(url,current){google.script.run.withSuccessHandler(function(r){if(r.success)loadAdmin();}).toggleAccepting(url,!current);}
 function saveAC2(url){var m=document.getElementById('acm').value,c={mode:m};if(m==='time')c.closeAt=document.getElementById('acmt').value;if(m==='count')c.maxSub=parseInt(document.getElementById('acmc').value)||100;google.script.run.withSuccessHandler(function(r){document.getElementById('acst2').innerText='✅ Tersimpan.';Swal.fire({icon:'success',title:'Tersimpan!',timer:1500,showConfirmButton:false});}).saveAutoClose(url,c);}
 function acmch(){var m=document.getElementById('acm').value;document.getElementById('acmtw').classList.toggle('hidden',m!=='time');document.getElementById('acmcw').classList.toggle('hidden',m!=='count');}
-function openLiveLink2(url){google.script.run.withSuccessHandler(function(r){if(r.success&&r.liveUrl)window.open(r.liveUrl,'_blank');else Swal.fire('Info','Belum ada live link. Generate dulu dari tab Hubungkan Form.','info');}).getFormLiveLink(url);}
+function bukaLiveForm(){
+  var liveUrl=window.__lastLiveUrl||document.getElementById('liveUrlLink').value;
+  if(!liveUrl)return;
+  // 1. Open live form in new tab
+  window.open(liveUrl,'_blank');
+  // 2. Write to Sheet1!A1 — derive edit URL from formActionUrl
+  var editUrl='';
+  if(currentFormUrl)editUrl=currentFormUrl;
+  else{
+    var m=(currentActionUrl||'').match(/\/d\/(?:e\/)?([^/]+)/);
+    if(m)editUrl='https://docs.google.com/forms/d/'+m[1]+'/edit';
+  }
+  if(editUrl)google.script.run.writeLiveLinkToSheet(editUrl,liveUrl);
+  // 3. Close modal, switch to Kelola Form tab
+  document.getElementById('modalOut').classList.add('hidden');
+  switchTab('admin');
+}
+
+function openLiveLink2(url){
+  google.script.run.withSuccessHandler(function(r){
+    if(r.success&&r.liveUrl)window.open(r.liveUrl,'_blank');
+    else Swal.fire('Info','Belum ada live link. Klik Buka Live Form dari popup Generate dulu.','info');
+  }).readLiveLinkFromSheet(url);
+}
 </script>
 </body>
 </html>

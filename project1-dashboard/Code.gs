@@ -1,4 +1,4 @@
-// ⏱ 2026-06-15 16:01 WIB — closed status: _closed flag in token, no cross-user Sheet access
+// ⏱ 2026-06-15 22:07 WIB — fixed: use _formEditUrl (real form ID) not published ID for Sheet write
 /**
  * PROJECT 1: NERD STUDIO FORM CONSTRUCTOR
  * Execute As: User accessing | Access: Anyone with Google
@@ -33,8 +33,8 @@ function autoCreateGoogleForm(formData) {
     try {
       var ss = SpreadsheetApp.create((formData.title || 'Form') + ' — Responses');
       form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
-      try { ss.getRange('A1').setValue('OPEN'); } catch(e2) {}
-    } catch(e) {}
+      try { ss.insertSheet("Sheet1"); } catch(e2) {}
+          } catch(e) {}
     (formData.fields || []).forEach(function(f) {
       var item = f.type === 'paragraph' ? form.addParagraphTextItem() : form.addTextItem();
       item.setTitle(f.label).setRequired(f.required !== false);
@@ -69,7 +69,20 @@ function generateLiveSaaSLink(configObj) {
       } catch(e) {}
     }
     var token = Utilities.base64EncodeWebSafe(JSON.stringify(configObj));
-    return { success: true, liveUrl: RENDERER_URL + "?f=" + token, token: token };
+    var liveUrl = RENDERER_URL + "?f=" + token;
+    // Write live link DIRECTLY to Sheet1!A1
+    // Use _formEditUrl (real form ID) not formActionUrl (published ID)
+    var editUrl = configObj._formEditUrl || (configObj.formActionUrl ? toEditUrl(configObj.formActionUrl) : null);
+    if (editUrl) {
+      var f2 = FormApp.openByUrl(editUrl);
+      var destId2 = f2.getDestinationId();
+      if (destId2) {
+        var ss2 = SpreadsheetApp.openById(destId2);
+        var sheet2 = ss2.getSheetByName("Sheet1") || ss2.insertSheet("Sheet1");
+        sheet2.getRange("A1").setValue(liveUrl);
+      }
+    }
+    return { success: true, liveUrl: liveUrl, token: token };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
@@ -132,6 +145,47 @@ function getFormClosedStatus(formUrl) {
 function getFormList() {
   var list = JSON.parse(PropertiesService.getUserProperties().getProperty('form_list') || '[]');
   return { success: true, list: list };
+}
+
+function saveFormLiveLink(formUrl, liveUrl) {
+  PropertiesService.getUserProperties().setProperty('live_' + extractId(formUrl), liveUrl);
+  return { success: true };
+}
+
+function writeLiveLinkToSheet(formUrl, liveUrl) {
+  try {
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
+    var destId = form.getDestinationId();
+    if (destId) {
+      var ss = SpreadsheetApp.openById(destId);
+      var sheet = ss.getSheetByName("Sheet1") || ss.insertSheet("Sheet1");
+      sheet.getRange("A1").setValue(liveUrl);
+      return { success: true };
+    }
+    return { success: false, message: "No linked Sheet" };
+  } catch(e) { return { success: false, message: e.toString() }; }
+}
+function readLiveLinkFromSheet(formUrl) {
+  try {
+    var form = FormApp.openByUrl(toEditUrl(formUrl));
+    var destId = form.getDestinationId();
+    if (destId) {
+      var ss = SpreadsheetApp.openById(destId);
+      var sheet = ss.getSheetByName("Sheet1");
+      if (sheet) {
+        var val = sheet.getRange("A1").getValue();
+        if (val && String(val).indexOf("http") === 0) return { success: true, liveUrl: String(val) };
+      }
+    }
+    return { success: false };
+  } catch(e) { return { success: false, message: e.toString() }; }
+}
+
+
+function getFormLiveLink(formUrl) {
+  var liveUrl = PropertiesService.getUserProperties().getProperty('live_' + extractId(formUrl));
+  if (liveUrl) return { success: true, liveUrl: liveUrl };
+  return { success: false };
 }
 
 function getResponseTable(formUrl, limit) {
