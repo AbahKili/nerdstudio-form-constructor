@@ -3,7 +3,8 @@
  * Execute As: User accessing | Access: Anyone with Google
  */
 
-var RENDERER_URL = "https://script.google.com/macros/s/AKfycbxWtPvGVYFie7xcj-hK8tzDGWqkMyj-MngOXf_-eYzU450tjsJUHjLRW3gZbrAENcbl/exec";
+// UPDATE this whenever renderer is redeployed
+var RENDERER_URL = "https://script.google.com/macros/s/AKfycbxUr-3dcJ298LyJzPhta4wI8KbhOxrBDQ_JWCF0WSnbNI5ExeZYsn5tmiuusMADSEbP/exec";
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -65,218 +66,30 @@ function generateLiveSaaSLink(configObj) {
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
-// ═══ ADMIN — LINKED SHEET, STATS, AUTO-CLOSE ══════════════════
+// ═══ FORM STATUS ══════════════════════════════════════════════
 
 function extractId(url) {
-  // Match /d/FORM_ID or /d/e/FORM_ID (viewform format)
   var m = url.match(/\/d\/(?:e\/)?([^/]+)/);
-  if (!m) return null;
-  var id = m[1];
-  // Skip the literal 'e' (viewform prefix)
-  if (id === 'e') return null;
-  return id;
+  if (!m || m[1] === 'e') return null;
+  return m[1];
 }
 
-// Normalize any Google Form URL to edit URL format
 function toEditUrl(url) {
   var id = extractId(url);
   if (!id) return url;
   return 'https://docs.google.com/forms/d/' + id + '/edit';
 }
 
-function isNerdStudioForm(formUrl) {
+function getFormStatus(formUrl) {
   try {
     var form = FormApp.openByUrl(toEditUrl(formUrl));
-    var desc = form.getDescription() || '';
-    return desc.indexOf('🏗️ Built with Nerd Studio Form Constructor') !== -1;
-  } catch(e) { return false; }
-}
-
-function getFormStats(formUrl) {
-  var urls = [toEditUrl(formUrl), formUrl];
-  var lastErr = '';
-  for (var i = 0; i < urls.length; i++) {
-    try {
-      var form = FormApp.openByUrl(urls[i]);
-      var responses = form.getResponses();
-      var sheetUrl = '';
-      try { if (form.getDestinationId()) sheetUrl = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch(e) {}
-      var last = responses.length > 0 ? responses[responses.length - 1].getTimestamp().toISOString() : '';
-      var ftitle = '';
-      try { ftitle = form.getTitle(); } catch(e) {}
-      return { success: true, total: responses.length, lastSubmission: last, accepting: form.isAcceptingResponses(), sheetUrl: sheetUrl, formId: extractId(formUrl), isNerdStudio: isNerdStudioForm(urls[i]), triedUrl: urls[i], title: ftitle };
-    } catch (err) { lastErr = err.toString(); }
-  }
-  return { success: false, message: lastErr + ' | tried: ' + urls.join(', ') };
-}
-
-function linkSheetToForm(formUrl) {
-  try {
-    var form = FormApp.openByUrl(toEditUrl(formUrl));
-    if (form.getDestinationId()) return { success: true, sheetUrl: 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit', alreadyLinked: true };
-    var ss = SpreadsheetApp.create(form.getTitle() + ' — Responses');
-    form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
-    return { success: true, sheetUrl: ss.getUrl() };
+    return { success: true, accepting: form.isAcceptingResponses(), title: form.getTitle() || '', responseCount: form.getResponses().length };
   } catch (err) { return { success: false, message: err.toString() }; }
 }
 
-function getResponseData(formUrl, limit) {
+function toggleFormStatus(formUrl, accepting) {
   try {
-    // Try reading from linked Sheet first (picks up manual edits too)
-    var form = FormApp.openByUrl(toEditUrl(formUrl));
-    try {
-      var destId = form.getDestinationId();
-      if (destId) {
-        var ss = SpreadsheetApp.openById(destId);
-        var sheet = ss.getSheets()[0];
-        var allData = sheet.getDataRange().getValues();
-        if (allData.length > 1) {
-          var hdrs = allData[0];
-          var rws = allData.slice(1).filter(function(r){return r.some(function(c){return String(c).trim()!==''})});
-          limit = Math.min(limit || 30, rws.length);
-          return { success: true, headers: hdrs, rows: rws.slice(-limit), total: rws.length, source: 'sheet' };
-        }
-      }
-    } catch(e) {}
-
-    // Fallback to form responses
-    var responses = form.getResponses();
-    var items = form.getItems();
-    limit = Math.min(limit || 30, responses.length);
-    var headers = items.map(function(it) { return it.getTitle(); });
-    var rows = [];
-    for (var i = Math.max(0, responses.length - limit); i < responses.length; i++) {
-      var resp = responses[i];
-      var itemResponses = resp.getItemResponses();
-      var row = [resp.getTimestamp().toLocaleString()];
-      items.forEach(function(item) {
-        var found = '';
-        for (var j = 0; j < itemResponses.length; j++) {
-          if (itemResponses[j].getItem().getId() === item.getId()) { found = itemResponses[j].getResponse(); break; }
-        }
-        row.push(String(found));
-      });
-      rows.push(row);
-    }
-    return { success: true, headers: ['Timestamp'].concat(headers), rows: rows, total: responses.length, source: 'form' };
+    FormApp.openByUrl(toEditUrl(formUrl)).setAcceptingResponses(accepting);
+    return { success: true, accepting: accepting };
   } catch (err) { return { success: false, message: err.toString() }; }
-}
-
-function getUniqueCount(formUrl, fieldTitle) {
-  try {
-    var form = FormApp.openByUrl(toEditUrl(formUrl));
-    var items = form.getItems();
-    var targetItem = null;
-    for (var i = 0; i < items.length; i++) { if (items[i].getTitle() === fieldTitle) { targetItem = items[i]; break; } }
-    if (!targetItem) return { success: false, message: 'Field not found' };
-    var seen = {};
-    form.getResponses().forEach(function(resp) {
-      var ir = resp.getItemResponses();
-      for (var j = 0; j < ir.length; j++) {
-        if (ir[j].getItem().getId() === targetItem.getId()) { seen[String(ir[j].getResponse()).toLowerCase().trim()] = true; }
-      }
-    });
-    return { success: true, uniqueCount: Object.keys(seen).length, total: form.getResponses().length, field: fieldTitle };
-  } catch (err) { return { success: false, message: err.toString() }; }
-}
-
-function getAutoCloseConfig(formUrl) {
-  var raw = PropertiesService.getUserProperties().getProperty('ac_' + extractId(formUrl));
-  return { success: true, config: raw ? JSON.parse(raw) : null };
-}
-
-function saveAutoCloseConfig(formUrl, config) {
-  PropertiesService.getUserProperties().setProperty('ac_' + extractId(formUrl), JSON.stringify(config));
-  return { success: true };
-}
-
-function toggleForm(formUrl, shouldAccept) {
-  try {
-    FormApp.openByUrl(toEditUrl(formUrl)).setAcceptingResponses(shouldAccept);
-    return { success: true, accepting: shouldAccept };
-  } catch (err) { return { success: false, message: err.toString() }; }
-}
-
-function saveFormToList(formUrl, title) {
-  var props = PropertiesService.getUserProperties();
-  var list = JSON.parse(props.getProperty('form_list') || '[]');
-  var id = extractId(formUrl);
-  // Use passed title first, then try FormApp.getTitle(), then ID fallback
-  // If title is empty, try FormApp, then keep old title from existing entry
-  if (!title || !title.trim()) {
-    try { title = FormApp.openByUrl(toEditUrl(formUrl)).getTitle(); } catch(e) {}
-  }
-  if ((!title || !title.trim()) && id) {
-    // Keep existing title if form already in list
-    for (var j = 0; j < list.length; j++) {
-      if (list[j].id === id && list[j].title && list[j].title.trim() && !list[j].title.startsWith('Form ')) {
-        title = list[j].title; break;
-      }
-    }
-  }
-  if (!title || !title.trim()) title = 'Form ' + (id ? id.substring(0, 8) : 'Baru');
-  // Dedupe by id
-  list = list.filter(function(f) { return f.id !== id; });
-  list.unshift({ id: id, url: formUrl, title: title, savedAt: new Date().toISOString() });
-  if (list.length > 20) list = list.slice(0, 20);
-  props.setProperty('form_list', JSON.stringify(list));
-  return { success: true, list: list };
-}
-
-function deleteFormFromList(formUrl) {
-  var props = PropertiesService.getUserProperties();
-  var list = JSON.parse(props.getProperty('form_list') || '[]');
-  var id = extractId(formUrl);
-  list = list.filter(function(f) { return f.id !== id; });
-  props.setProperty('form_list', JSON.stringify(list));
-  return { success: true };
-}
-
-function saveFormLiveLink(formUrl, liveUrl) {
-  var props = PropertiesService.getUserProperties();
-  var list = JSON.parse(props.getProperty('form_list') || '[]');
-  var id = extractId(formUrl);
-  for (var i = 0; i < list.length; i++) {
-    if (list[i].id === id) { list[i].liveUrl = liveUrl; break; }
-  }
-  props.setProperty('form_list', JSON.stringify(list));
-  return { success: true };
-}
-
-function getFormTitle(formUrl) {
-  try {
-    var form = FormApp.openByUrl(toEditUrl(formUrl));
-    return { success: true, title: form.getTitle() };
-  } catch(e) { return { success: false }; }
-}
-
-function getFormLiveLink(formUrl) {
-  var list = JSON.parse(PropertiesService.getUserProperties().getProperty('form_list') || '[]');
-  var id = extractId(formUrl);
-  for (var i = 0; i < list.length; i++) {
-    if (list[i].id === id && list[i].liveUrl) return { success: true, liveUrl: list[i].liveUrl };
-  }
-  return { success: false };
-}
-
-function refreshFormList() {
-  var props = PropertiesService.getUserProperties();
-  var list = JSON.parse(props.getProperty('form_list') || '[]');
-  var cleaned = [];
-  for (var i = 0; i < list.length; i++) {
-    try {
-      var form = FormApp.openByUrl(toEditUrl(list[i].url));
-      list[i].title = form.getTitle();
-      cleaned.push(list[i]);
-    } catch(e) {
-      // Form no longer accessible — remove from list
-    }
-  }
-  props.setProperty('form_list', JSON.stringify(cleaned));
-  return { success: true, list: cleaned };
-}
-
-function getFormList() {
-  var props = PropertiesService.getUserProperties();
-  return { success: true, list: JSON.parse(props.getProperty('form_list') || '[]') };
 }

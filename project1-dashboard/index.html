@@ -27,7 +27,6 @@ body.dark #topSub{color:#94a3b8!important}
 .hidden{display:none!important}
 .loader{border:3px solid #e2e8f0;border-left-color:#3b82f6;border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite}
 @keyframes spin{100%{transform:rotate(360deg)}}
-.admin-card{border-left:4px solid #3b82f6}
 </style>
 </head>
 <body class="text-slate-800 pb-20">
@@ -40,7 +39,7 @@ body.dark #topSub{color:#94a3b8!important}
       <p class="text-xs text-slate-500" id="topSub">Stateless White-Label Compiler Engine</p>
     </div>
   </div>
-  <button onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-500" title="Toggle Light/Dark">
+  <button onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-500">
     <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
   </button>
 </div>
@@ -49,16 +48,15 @@ body.dark #topSub{color:#94a3b8!important}
 
   <!-- Tabs -->
   <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="flex border-b border-slate-200 bg-slate-50 overflow-x-auto">
-      <button onclick="switchTab('existing')" id="tab-existing" class="flex-1 py-4 text-sm font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap px-2">Hubungkan Form</button>
-      <button onclick="switchTab('new')" id="tab-new" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent whitespace-nowrap px-2">Buat Baru</button>
-      <button onclick="switchTab('admin')" id="tab-admin" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent whitespace-nowrap px-2">Kelola Form</button>
+    <div class="flex border-b border-slate-200 bg-slate-50">
+      <button onclick="switchTab('existing')" id="tab-existing" class="flex-1 py-4 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Hubungkan Form</button>
+      <button onclick="switchTab('new')" id="tab-new" class="flex-1 py-4 text-sm font-bold text-slate-500 border-b-2 border-transparent">Buat Baru</button>
     </div>
     <div class="p-6">
 
       <!-- MODE: Hubungkan -->
       <div id="mode-existing">
-        <p class="text-xs text-slate-500 mb-2">Masukkan tautan publik Google Form (URL viewform).</p>
+        <p class="text-xs text-slate-500 mb-2">Masukkan tautan publik Google Form.</p>
         <div class="flex gap-3">
           <input type="url" id="formUrl" placeholder="https://docs.google.com/forms/d/e/.../viewform" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
           <button onclick="parseForm()" id="btnParse" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2">
@@ -71,7 +69,7 @@ body.dark #topSub{color:#94a3b8!important}
       <div id="mode-new" class="hidden space-y-4">
         <div>
           <label class="block text-sm font-medium mb-1">Judul Google Form Baru</label>
-          <input type="text" id="newFormTitle" value="Form Pendaftaran Event" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500">
+          <input type="text" id="newFormTitle" value="Form Pendaftaran" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
           <label class="block text-sm font-medium mb-2">Daftar Pertanyaan</label>
@@ -90,31 +88,10 @@ body.dark #topSub{color:#94a3b8!important}
           </button>
         </div>
       </div>
-
-      <!-- MODE: Admin -->
-      <div id="mode-admin" class="hidden space-y-4">
-        <p class="text-xs text-slate-500">Pilih form yang sudah ada, atau masukkan URL form baru.</p>
-        <div class="flex gap-3 items-end">
-          <div class="flex-1">
-            <label class="text-xs font-medium">Form Tersimpan</label>
-            <select id="adminFormSelect" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="onFormSelect()">
-              <option value="">-- Pilih form tersimpan --</option>
-            </select>
-          </div>
-          <span class="text-xs text-slate-400 pb-2">atau</span>
-          <div class="flex-1 flex gap-2">
-            <input type="url" id="adminFormUrl" placeholder="URL form baru..." class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="loadAdmin()" id="btnAdmin" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 whitespace-nowrap">
-              <span id="txtAdmin">Muat</span><div id="loadAdmin" class="loader hidden" style="border-color:rgba(255,255,255,0.2);border-left-color:#fff"></div>
-            </button>
-          </div>
-        </div>
-        <div id="adminContent" class="hidden space-y-4 mt-4"></div>
-      </div>
     </div>
   </div>
 
-  <!-- STEP 2 + 3 (muncul setelah parse/create) -->
+  <!-- STEP 2 + 3 -->
   <div id="step2" class="hidden space-y-6">
 
     <!-- Step 2: Branding -->
@@ -123,10 +100,10 @@ body.dark #topSub{color:#94a3b8!important}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium mb-1">Judul Form</label><input type="text" id="b_title" value="Registrasi Anggota" class="w-full border rounded-lg px-3 py-2"></div>
         <div><label class="block text-sm font-medium mb-1">Sub-Judul</label><input type="text" id="b_subtitle" value="Lengkapi data pendaftaran Anda" class="w-full border rounded-lg px-3 py-2"></div>
-        <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Pesan Halaman Sukses</label><input type="text" id="b_success" value="Terima kasih! Data Anda telah berhasil dikirim. Tim kami akan menghubungi Anda segera." class="w-full border rounded-lg px-3 py-2"><p class="text-[10px] text-slate-400 mt-1">Ditampilkan di halaman sukses setelah user submit form.</p></div>
-        <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Link Redirect (Opsional)</label><input type="url" id="b_redirect" placeholder="contoh: detik.com (tanpa https:// juga bisa)" class="w-full border rounded-lg px-3 py-2"><p class="text-[10px] text-slate-400 mt-1">User akan di-redirect otomatis setelah 3 detik. Kosongkan jika tidak perlu.</p></div>
+        <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Pesan Halaman Sukses</label><input type="text" id="b_success" value="Terima kasih! Data Anda telah berhasil dikirim." class="w-full border rounded-lg px-3 py-2"></div>
+        <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Link Redirect (Opsional)</label><input type="url" id="b_redirect" placeholder="contoh: detik.com" class="w-full border rounded-lg px-3 py-2"></div>
         <div><label class="block text-sm font-medium mb-1">Tema Warna</label><select id="b_theme" class="w-full border rounded-lg px-3 py-2 bg-white"><option value="dark">Cyber Dark</option><option value="light">Minimalist Light</option><option value="corporate">Corporate Blue</option></select></div>
-        <div><label class="block text-sm font-medium mb-1">URL Logo</label><input type="url" id="b_logo" placeholder="https://situs.com/logo.png" class="w-full border rounded-lg px-3 py-2"><p class="text-[10px] text-slate-400 mt-1">Gunakan URL langsung, bukan upload file.</p></div>
+        <div><label class="block text-sm font-medium mb-1">URL Logo</label><input type="url" id="b_logo" placeholder="https://situs.com/logo.png" class="w-full border rounded-lg px-3 py-2"></div>
       </div>
     </div>
 
@@ -157,7 +134,18 @@ body.dark #topSub{color:#94a3b8!important}
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
     <div class="text-center"><div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl mb-3"><i class="fa-solid fa-circle-check"></i></div><h3 class="text-lg font-bold text-slate-900">Portal Sukses Diluncurkan!</h3><p class="text-xs text-slate-500 mt-1">Tautan whitelabel siap digunakan.</p></div>
     <div class="bg-slate-50 p-3 rounded-xl border flex items-center justify-between gap-2"><input type="text" id="liveUrlLink" readonly class="bg-transparent text-xs font-mono text-blue-600 flex-1 overflow-x-auto focus:outline-none select-all"><button onclick="copyLink()" class="bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold">Copy</button></div>
-    <div class="pt-2 flex gap-2"><a id="lnkTest" href="#" target="_blank" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-center py-2.5 rounded-xl text-sm">Buka Link Form</a><button onclick="document.getElementById('modalOut').classList.add('hidden')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 rounded-xl text-sm border">Tutup</button></div>
+    <div class="pt-2 flex gap-2">
+      <a id="lnkTest" href="#" target="_blank" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-center py-2.5 rounded-xl text-sm">Buka Live Form</a>
+      <button onclick="document.getElementById('modalOut').classList.add('hidden')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 rounded-xl text-sm border">Tutup</button>
+    </div>
+    <!-- Form Status Toggle -->
+    <div id="formStatusPanel" class="pt-3 border-t border-slate-200 text-center">
+      <p class="text-xs text-slate-500 mb-2">Setelah live link aktif, kamu bisa menutup Google Form agar tidak ada response baru.</p>
+      <button onclick="toggleForm()" id="btnToggleForm" class="bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 rounded-xl text-sm font-medium border border-red-200">
+        <i class="fa-solid fa-lock mr-1"></i> Tutup Google Form
+      </button>
+      <p id="formStatusText" class="text-xs text-slate-400 mt-2"></p>
+    </div>
   </div>
 </div>
 
@@ -167,17 +155,13 @@ function toggleTheme(){var b=document.body,icon=document.getElementById('themeIc
 
 var currentActionUrl="",currentFormUrl="";
 var TOTAL_PAGES=2,REGION_LEVEL="kabkota";
-var step2Visible=false;
+var formAccepting=true;
 
 function switchTab(m){
-  ['existing','new','admin'].forEach(function(t){
+  ['existing','new'].forEach(function(t){
     document.getElementById('mode-'+t).classList.toggle('hidden',t!==m);
-    document.getElementById('tab-'+t).className='flex-1 py-4 text-sm font-bold '+(t===m?'text-blue-600 border-b-2 border-blue-600':'text-slate-500 border-b-2 border-transparent')+' whitespace-nowrap px-2 transition-all';
+    document.getElementById('tab-'+t).className='flex-1 py-4 text-sm font-bold '+(t===m?'text-blue-600 border-b-2 border-blue-600':'text-slate-500 border-b-2 border-transparent')+' transition-all';
   });
-  // Hide Step 2+3 when on admin tab
-  var s2=document.getElementById('step2');
-  if(m==='admin'){s2.classList.add('hidden');}else if(step2Visible){s2.classList.remove('hidden');}
-  if(m==='admin')loadFormList();
 }
 
 function onRegionChange(){REGION_LEVEL=document.getElementById('regionLevelSelect').value;updatePageSections();}
@@ -188,13 +172,6 @@ function updatePageSections(){
     var cur=sel.value;sel.innerHTML='';
     for(var i=1;i<=TOTAL_PAGES;i++){sel.innerHTML+='<option value="page'+i+'"'+(cur==='page'+i?' selected':'')+'>Halaman '+i+'</option>';}
   });
-  document.querySelectorAll('#mappingBody tr').forEach(function(tr){
-    var role=tr.querySelector('.role-select').value;
-    if(role==='kecamatan'&&REGION_LEVEL!=='kecamatan')tr.style.opacity='0.4';
-    else if(role==='kabkota'&&(REGION_LEVEL==='provinsi'||REGION_LEVEL==='none'))tr.style.opacity='0.4';
-    else if(role==='provinsi'&&REGION_LEVEL==='none')tr.style.opacity='0.4';
-    else tr.style.opacity='1';
-  });
 }
 
 function addField(lbl,role){
@@ -204,7 +181,9 @@ function addField(lbl,role){
   c.appendChild(d);
 }
 
-document.addEventListener("DOMContentLoaded",function(){[['Nama Lengkap','normal'],['Email Aktif','normal'],['Asal Instansi','normal'],['Jenis Kelamin','gender'],['Provinsi','provinsi'],['Kabupaten/Kota','kabkota'],['Kecamatan','kecamatan']].forEach(function(f){addField(f[0],f[1])});});
+document.addEventListener("DOMContentLoaded",function(){
+  [['Nama Lengkap','normal'],['Email Aktif','normal'],['Asal Instansi','normal'],['Jenis Kelamin','gender'],['Provinsi','provinsi'],['Kabupaten/Kota','kabkota'],['Kecamatan','kecamatan']].forEach(function(f){addField(f[0],f[1])});
+});
 
 function createFormOnDrive(){
   var txt=document.getElementById('txtCreate'),load=document.getElementById('loadCreate');
@@ -215,7 +194,9 @@ function createFormOnDrive(){
     txt.innerText="Buat Form di Drive Saya";load.classList.add('hidden');document.getElementById('btnCreate').disabled=false;
     if(!res.success)return Swal.fire('Error',res.message,'error');
     Swal.fire({icon:'success',title:'Berhasil!',text:'Menganalisis form...',timer:1500,showConfirmButton:false});
-    document.getElementById('formUrl').value=res.url;document.getElementById('b_title').value=document.getElementById('newFormTitle').value;autoSaveForm(res.editUrl||res.url,document.getElementById('newFormTitle').value);parseForm(res.url);
+    document.getElementById('formUrl').value=res.url;currentFormUrl=res.editUrl||res.url;
+    document.getElementById('b_title').value=document.getElementById('newFormTitle').value;
+    parseForm(res.url);
   }).autoCreateGoogleForm({title:document.getElementById('newFormTitle').value,fields:fields});
 }
 
@@ -229,9 +210,11 @@ function parseForm(forceUrl){
     if(!res.success)return Swal.fire('Gagal',res.message,'error');
     currentActionUrl=res.formActionUrl;
     renderTableMapping(res.fields);
-    document.getElementById('step2').classList.remove('hidden');step2Visible=true;
-    // Auto-populate branding title from form
-    google.script.run.withSuccessHandler(function(r){if(r.success&&r.title)document.getElementById('b_title').value=r.title;}).getFormTitle(url);
+    document.getElementById('step2').classList.remove('hidden');
+    // Get form title for branding
+    google.script.run.withSuccessHandler(function(r){if(r.success&&r.title&&r.title.trim())document.getElementById('b_title').value=r.title;}).getFormStatus(url);
+    // Get form status
+    google.script.run.withSuccessHandler(function(r){if(r.success)formAccepting=r.accepting;}).getFormStatus(url);
   }).parseGoogleForm(url);
 }
 
@@ -269,199 +252,36 @@ function compileStatelessForm(){
     btnGen.disabled=false;btnGen.innerText="Generate Live Link";
     if(!res.success)return Swal.fire('Error',res.message,'error');
     document.getElementById('liveUrlLink').value=res.liveUrl;document.getElementById('lnkTest').href=res.liveUrl;
+    // Update toggle button based on current status
+    updateToggleButton();
     document.getElementById('modalOut').classList.remove('hidden');
-    if(currentFormUrl)google.script.run.saveFormLiveLink(currentFormUrl,res.liveUrl);
   }).generateLiveSaaSLink(config);
 }
 
-function copyLink(){var i=document.getElementById('liveUrlLink');i.select();document.execCommand("copy");Swal.fire({icon:'success',title:'Link Disalin!',toast:true,position:'top-end',timer:1500,showConfirmButton:false});}
-
-// ═══════════════════════════════════════════════════════════════
-// ADMIN DASHBOARD
-// ═══════════════════════════════════════════════════════════════
-
-var adminFormUrl='';
-
-// Load saved forms on tab switch + auto-refresh
-function loadFormList(){
-  google.script.run.withSuccessHandler(function(r){
-    if(!r.success)return;
-    var sel=document.getElementById('adminFormSelect');
-    sel.innerHTML='<option value="">-- Pilih form tersimpan ('+r.list.length+') --</option>';
-    r.list.forEach(function(f){
-      var t=f.title||f.id||'Untitled';
-      sel.innerHTML+='<option value="'+f.url+'">'+t+'</option>';
-    });
-  }).getFormList();
-}
-
-function onFormSelect(){
-  var url=document.getElementById('adminFormSelect').value;
-  if(!url)return;
-  document.getElementById('adminFormUrl').value=url;
-  loadAdmin();
-}
-
-function autoSaveForm(url,title){
-  title=title||document.getElementById('newFormTitle').value||document.getElementById('b_title').value||'Untitled';
-  google.script.run.saveFormToList(url,title);
-}
-
-function loadAdmin(){
-  var url=document.getElementById('adminFormUrl').value;
-  if(!url||!url.includes('docs.google.com/forms'))return Swal.fire('Error','Link tidak valid.','error');
-  adminFormUrl=url;
-  currentFormUrl=url; // For live link generation
-  document.getElementById('txtAdmin').innerText="Memuat...";document.getElementById('loadAdmin').classList.remove('hidden');
-  document.getElementById('btnAdmin').disabled=true;
-  // Load stats + data first, then save form with correct title
-  google.script.run.withSuccessHandler(function(stats){
-    if(!stats.success){renderAdmin(stats);return;}
-    // Save to list with real title from stats
-    google.script.run.withSuccessHandler(function(r){
-      loadFormList();
-      renderAdmin(stats);
-    }).saveFormToList(url, stats.isNerdStudio ? (stats.title || '') : '');
-  }).getFormStats(url);
-}
-
-function renderAdmin(stats){
-  document.getElementById('txtAdmin').innerText="Muat Data";document.getElementById('loadAdmin').classList.add('hidden');
-  document.getElementById('btnAdmin').disabled=false;
-  if(!stats.success)return Swal.fire('Error',stats.message,'error');
-
-  var c=document.getElementById('adminContent');c.classList.remove('hidden');
-  var nsBadge=stats.isNerdStudio?'<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium"><i class="fa-solid fa-bolt"></i> Nerd Studio</span>':'<span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">Google Forms</span>';
-  var accBg=stats.accepting?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700';
-  var accTxt=stats.accepting?'<i class="fa-solid fa-circle-check"></i> Terbuka':'<i class="fa-solid fa-circle-xmark"></i> Tertutup';
-
-  c.innerHTML='\
-    '+nsBadge+'\</div>\
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">\
-      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-2xl font-bold text-blue-600">'+stats.total+'</div><div class="text-xs text-slate-500">Total Response</div></div>\
-      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-sm font-bold text-blue-600 truncate">'+formatDate(stats.lastSubmission)+'</div><div class="text-xs text-slate-500">Terakhir Submit</div></div>\
-      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200"><div class="text-sm font-bold '+accBg+' rounded-full px-3 py-1 inline-block">'+accTxt+'</div><br><div class="text-xs text-slate-500 mt-1">Status</div></div>\
-      <div class="admin-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">\
-        <button onclick="toggleFormStatus()" class="w-full text-sm font-bold px-3 py-2 rounded-lg '+(stats.accepting?'bg-red-50 text-red-600 hover:bg-red-100':'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')+'">'+(stats.accepting?'Tutup Form':'Buka Form')+'</button>\
-        <div class="text-xs text-slate-500 mt-1 text-center">Manual</div>\
-      </div>\
-    </div>\
-    <div class="flex gap-3 flex-wrap">\
-      '+sheetSection(stats)+'\
-      <a href="#" onclick="openLiveLink();return false" class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-globe"></i> Buka Live Form</a>\
-      <a href="#" onclick="genFromAdmin();return false" class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-medium border border-emerald-200 hover:bg-emerald-100"><i class="fa-solid fa-pen-to-square"></i> Edit Branding & Generate</a>\
-      <a href="#" onclick="delForm();return false" class="inline-flex items-center gap-2 bg-red-50 text-red-400 px-4 py-2 rounded-xl text-sm border border-red-200 hover:bg-red-100"><i class="fa-solid fa-trash"></i> Hapus dari List</a>\
-    </div>\
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">\
-      <h3 class="font-bold text-sm mb-3"><i class="fa-solid fa-clock text-blue-500"></i> Auto-Close Otomatis</h3>\
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">\
-        <div><label class="text-xs font-medium">Mode</label><select id="ac_mode" class="w-full border rounded-lg px-2 py-1.5 text-xs" onchange="acModeChange()"><option value="off">Nonaktif</option><option value="time">Berdasarkan Waktu</option><option value="count">Berdasarkan Jumlah</option><option value="unique">Berdasarkan Unique</option><option value="combo">Kombinasi (Waktu / Jumlah)</option></select></div>\
-        <div id="ac_time_wrap" class="hidden"><label class="text-xs font-medium">Tutup Pada</label><input type="datetime-local" id="ac_closeAt" class="w-full border rounded-lg px-2 py-1.5 text-xs"></div>\
-        <div id="ac_count_wrap" class="hidden"><label class="text-xs font-medium">Max Submission</label><input type="number" id="ac_maxSub" value="100" min="1" class="w-full border rounded-lg px-2 py-1.5 text-xs"></div>\
-        <div id="ac_unique_wrap" class="hidden"><label class="text-xs font-medium">Field Unique</label><select id="ac_uniqueField" class="w-full border rounded-lg px-2 py-1.5 text-xs"></select></div>\
-        <div><button onclick="saveAutoClose()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 rounded-lg"><i class="fa-solid fa-floppy-disk mr-1"></i>Simpan</button></div>\
-      </div>\
-      <div id="ac_status" class="text-xs text-slate-500 mt-2"></div>\
-    </div>\
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">\
-      <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-sm"><i class="fa-solid fa-table-list text-blue-500"></i> Data Respons</h3><button onclick="refreshData()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button></div>\
-      <div id="dataTable" class="overflow-x-auto max-h-96 text-xs"></div>\
-    </div>';
-
-  // Load auto-close config + response data
-  google.script.run.withSuccessHandler(loadAutoCloseConfig).getAutoCloseConfig(adminFormUrl);
-  refreshData();
-  acModeChange();
-}
-
-function sheetSection(s){
-  if(s.sheetUrl)return '<a href="'+s.sheetUrl+'" target="_blank" class="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl text-sm font-medium border border-green-200 hover:bg-green-100"><i class="fa-solid fa-table"></i> Buka Google Sheet</a><button onclick="linkSheet()" class="inline-flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl text-sm border hover:bg-slate-200"><i class="fa-solid fa-link"></i> Hubungkan Ulang</button>';
-  return '<button onclick="linkSheet()" class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm font-medium border border-blue-200 hover:bg-blue-100"><i class="fa-solid fa-plus"></i> Hubungkan ke Google Sheet</button>';
-}
-
-function linkSheet(){
-  Swal.fire({title:'Menghubungkan...',allowOutsideClick:false,showConfirmButton:false});Swal.showLoading();
-  google.script.run.withSuccessHandler(function(r){
-    Swal.close();
-    if(r.success)loadAdmin();
-    else Swal.fire('Error',r.message,'error');
-  }).linkSheetToForm(adminFormUrl);
-}
-
-function toggleFormStatus(){
-  google.script.run.withSuccessHandler(function(r){
-    if(r.success)loadAdmin();
-  }).toggleForm(adminFormUrl);
-}
-
-function loadAutoCloseConfig(res){
-  if(!res.success||!res.config)return;
-  var cfg=res.config;
-  document.getElementById('ac_mode').value=cfg.mode||'off';
-  if(cfg.closeAt)document.getElementById('ac_closeAt').value=cfg.closeAt;
-  if(cfg.maxSubmissions)document.getElementById('ac_maxSub').value=cfg.maxSubmissions;
-  if(cfg.uniqueField)document.getElementById('ac_uniqueField').value=cfg.uniqueField;
-  acModeChange();
-  document.getElementById('ac_status').innerText=cfg.mode!=='off'?'Tersimpan. Auto-close: '+cfg.mode+' — cek setiap dashboard load.':'';
-}
-
-function acModeChange(){
-  var m=document.getElementById('ac_mode').value;
-  document.getElementById('ac_time_wrap').classList.toggle('hidden',m!=='time'&&m!=='combo');
-  document.getElementById('ac_count_wrap').classList.toggle('hidden',m!=='count');
-  document.getElementById('ac_unique_wrap').classList.toggle('hidden',m!=='unique'&&m!=='combo');
-  if(m==='unique'||m==='combo'){
-    google.script.run.withSuccessHandler(function(r){
-      var sel=document.getElementById('ac_uniqueField');
-      sel.innerHTML='(loading...)';
-      if(r.success&&r.fields)sel.innerHTML=r.fields.map(function(f){return'<option value="'+f+'">'+f+'</option>'}).join('');
-    }).parseGoogleForm(adminFormUrl);
+function updateToggleButton(){
+  var btn=document.getElementById('btnToggleForm'),txt=document.getElementById('formStatusText');
+  if(formAccepting){
+    btn.innerHTML='<i class="fa-solid fa-lock mr-1"></i> Tutup Google Form';
+    btn.className='bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 rounded-xl text-sm font-medium border border-red-200';
+    txt.innerText='Form saat ini: TERBUKA — menerima response baru';
+  } else {
+    btn.innerHTML='<i class="fa-solid fa-lock-open mr-1"></i> Buka Google Form';
+    btn.className='bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-6 py-2 rounded-xl text-sm font-medium border border-emerald-200';
+    txt.innerText='Form saat ini: TERTUTUP — tidak menerima response';
   }
 }
 
-function saveAutoClose(){
-  var cfg={mode:document.getElementById('ac_mode').value};
-  if(cfg.mode==='time'||cfg.mode==='combo')cfg.closeAt=document.getElementById('ac_closeAt').value;
-  if(cfg.mode==='count')cfg.maxSubmissions=parseInt(document.getElementById('ac_maxSub').value)||100;
-  if(cfg.mode==='unique'){cfg.uniqueField=document.getElementById('ac_uniqueField').value;cfg.maxSubmissions=parseInt(document.getElementById('ac_maxSub').value)||100;}
-  if(cfg.mode==='combo'){cfg.closeAt=document.getElementById('ac_closeAt').value;cfg.uniqueField=document.getElementById('ac_uniqueField').value;cfg.maxSubmissions=parseInt(document.getElementById('ac_maxSub').value)||100;cfg.combo='whichever_first';}
+function toggleForm(){
+  var newState=!formAccepting;
   google.script.run.withSuccessHandler(function(r){
-    if(r.success){document.getElementById('ac_status').innerText='✅ Auto-close disimpan.';Swal.fire({icon:'success',title:'Tersimpan!',timer:1500,showConfirmButton:false});}
-    else Swal.fire('Error',r.message,'error');
-  }).saveAutoCloseConfig(adminFormUrl,cfg);
+    if(!r.success)return Swal.fire('Error',r.message,'error');
+    formAccepting=r.accepting;
+    updateToggleButton();
+    Swal.fire({icon:'success',title:formAccepting?'Form Dibuka!':'Form Ditutup!',timer:1500,showConfirmButton:false});
+  }).toggleFormStatus(currentFormUrl, newState);
 }
 
-function refreshData(){
-  google.script.run.withSuccessHandler(function(r){
-    if(!r.success){document.getElementById('dataTable').innerHTML='<p class="text-red-500 text-sm">Error: '+r.message+'</p>';return;}
-    if(!r.rows||r.rows.length===0){
-      document.getElementById('dataTable').innerHTML='<p class="text-slate-400 text-sm">Belum ada response. Isi form untuk melihat data di sini.</p>';
-      return;
-    }
-    var h='<table class="w-full border-collapse"><thead><tr class="bg-slate-50">';
-    r.headers.forEach(function(hdr){h+='<th class="px-3 py-2 text-left font-semibold border-b whitespace-nowrap">'+String(hdr)+'</th>';});
-    h+='</tr></thead><tbody>';
-    r.rows.forEach(function(row){h+='<tr class="border-b hover:bg-slate-50">';row.forEach(function(cell){h+='<td class="px-3 py-1.5 whitespace-nowrap max-w-xs truncate">'+String(cell)+'</td>';});h+='</tr>';});
-    h+='</tbody></table><p class="text-slate-400 mt-2 text-xs">Menampilkan '+r.rows.length+' dari '+r.total+' response ('+(r.source||'?')+')</p>';
-    document.getElementById('dataTable').innerHTML=h;
-  }).getResponseData(adminFormUrl,30);
-}
-
-function genFromAdmin(){
-  document.getElementById('formUrl').value=adminFormUrl;switchTab('existing');parseForm();
-}
-function openLiveLink(){
-  google.script.run.withSuccessHandler(function(r){
-    if(r.success&&r.liveUrl){window.open(r.liveUrl,'_blank')}
-    else{Swal.fire('Info','Belum ada live link. Klik Edit Branding & Generate dulu.','info')}
-  }).getFormLiveLink(adminFormUrl);
-}
-function delForm(){
-  Swal.fire({title:'Hapus dari list?',text:'Form tidak dihapus dari Drive',icon:'warning',showCancelButton:true,confirmButtonText:'Ya, hapus',cancelButtonText:'Batal'}).then(function(r){
-    if(r.isConfirmed){google.script.run.withSuccessHandler(function(){loadFormList();document.getElementById('adminContent').classList.add('hidden');}).deleteFormFromList(adminFormUrl);}
-  });
-}
-function formatDate(d){if(!d)return'(belum ada)';return new Date(d).toLocaleString('id-ID');}
+function copyLink(){var i=document.getElementById('liveUrlLink');i.select();document.execCommand("copy");Swal.fire({icon:'success',title:'Link Disalin!',toast:true,position:'top-end',timer:1500,showConfirmButton:false});}
 </script>
 </body>
 </html>
